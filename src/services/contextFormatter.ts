@@ -26,36 +26,36 @@ export class ContextFormatterService {
   }): Promise<GeneratedContext> {
     console.error(`📝 [LLMSTXT-FORMAT] Starting formatting of ${results.length} crawl results`);
     console.error(`📋 [LLMSTXT-FORMAT] Options: ${JSON.stringify(options, null, 2)}`);
-    
+
     // Filter successful results
     const successfulResults = results.filter(result => result.success && result.content);
-    
+
     if (successfulResults.length === 0) {
       console.error('❌ [LLMSTXT-FORMAT] No successful results to format');
       throw new Error('No successful crawl results to format');
     }
-    
+
     console.error(`✅ [LLMSTXT-FORMAT] Processing ${successfulResults.length} successful results`);
-    
+
     // Build document hierarchy
     const hierarchy = this.buildDocumentHierarchy(successfulResults);
-    
+
     // Convert to sections
     const sections = this.convertToSections(hierarchy, options);
-    
+
     // Generate the final context content
     const content = this.generateContextContent(sections, options, successfulResults[0]?.url);
-    
+
     const metadata = {
       generatedAt: new Date().toISOString(),
       sourceCount: successfulResults.length,
       totalLength: content.length,
       format: options.format,
     };
-    
-    console.error(`🎉 [LLMSTXT-FORMAT] Formatting completed successfully!`);
+
+    console.error('🎉 [LLMSTXT-FORMAT] Formatting completed successfully!');
     console.error(`📊 [LLMSTXT-FORMAT] Generated: ${content.length} chars, ${sections.length} sections`);
-    
+
     return {
       content,
       sections,
@@ -68,14 +68,14 @@ export class ContextFormatterService {
    */
   private buildDocumentHierarchy(results: CrawlResult[]): DocumentHierarchy[] {
     console.error(`🏗️ [HIERARCHY] Building document hierarchy from ${results.length} results`);
-    
+
     const hierarchy: DocumentHierarchy[] = [];
     const urlMap = new Map<string, DocumentHierarchy>();
-    
+
     // First pass: create document nodes and determine their levels
     for (const result of results) {
       if (!result.content || !result.title) continue;
-      
+
       const level = this.determineDocumentLevel(result.url, results);
       const docNode: DocumentHierarchy = {
         title: this.sanitizeTitle(result.title),
@@ -84,20 +84,20 @@ export class ContextFormatterService {
         level,
         children: [],
       };
-      
+
       urlMap.set(result.url, docNode);
-      
+
       // Add to hierarchy based on level
       if (level === 1) {
         hierarchy.push(docNode);
       }
     }
-    
+
     // Second pass: establish parent-child relationships
     for (const result of results) {
       const docNode = urlMap.get(result.url);
       if (!docNode || docNode.level === 1) continue;
-      
+
       // Find the best parent for this document
       const parent = this.findBestParent(docNode, Array.from(urlMap.values()));
       if (parent) {
@@ -107,13 +107,13 @@ export class ContextFormatterService {
         hierarchy.push(docNode);
       }
     }
-    
+
     // Sort hierarchy by title for consistency
     this.sortHierarchy(hierarchy);
-    
+
     console.error(`✅ [HIERARCHY] Built hierarchy with ${hierarchy.length} root documents`);
     this.logHierarchy(hierarchy, 0);
-    
+
     return hierarchy;
   }
 
@@ -126,28 +126,28 @@ export class ContextFormatterService {
       const pathSegments = urlObj.pathname
         .split('/')
         .filter(segment => segment.length > 0 && segment !== 'index.html');
-      
+
       // Common patterns for determining document levels:
-      
+
       // Root/landing pages (level 1)
       if (pathSegments.length <= 1 ||
           pathSegments.some(segment => ['index', 'home', 'introduction', 'overview'].includes(segment.toLowerCase()))) {
         return 1;
       }
-      
+
       // Getting started pages (level 1)
       if (pathSegments.some(segment => ['getting-started', 'quickstart', 'setup', 'installation'].includes(segment.toLowerCase()))) {
         return 1;
       }
-      
+
       // API reference pages tend to be deeper
       if (pathSegments.some(segment => ['api', 'reference', 'methods'].includes(segment.toLowerCase()))) {
         return Math.min(pathSegments.length, 4); // Cap at level 4
       }
-      
+
       // General rule: path depth determines level (with reasonable limits)
       return Math.min(pathSegments.length, 3);
-      
+
     } catch {
       return 2; // Default level for malformed URLs
     }
@@ -157,25 +157,25 @@ export class ContextFormatterService {
    * Find the best parent for a document based on URL structure
    */
   private findBestParent(docNode: DocumentHierarchy, allNodes: DocumentHierarchy[]): DocumentHierarchy | null {
-    const candidates = allNodes.filter(node => 
-      node.level < docNode.level && 
+    const candidates = allNodes.filter(node =>
+      node.level < docNode.level &&
       node.url !== docNode.url &&
-      this.isLikelyParent(node.url, docNode.url)
+      this.isLikelyParent(node.url, docNode.url),
     );
-    
+
     if (candidates.length === 0) return null;
-    
+
     // Sort by level (prefer immediate parent) and URL similarity
     candidates.sort((a, b) => {
       const levelDiff = Math.abs(a.level - (docNode.level - 1)) - Math.abs(b.level - (docNode.level - 1));
       if (levelDiff !== 0) return levelDiff;
-      
+
       // Prefer parent with more similar URL path
       const aSimilarity = this.calculateUrlSimilarity(a.url, docNode.url);
       const bSimilarity = this.calculateUrlSimilarity(b.url, docNode.url);
       return bSimilarity - aSimilarity;
     });
-    
+
     return candidates[0];
   }
 
@@ -186,13 +186,13 @@ export class ContextFormatterService {
     try {
       const parentPath = new URL(parentUrl).pathname;
       const childPath = new URL(childUrl).pathname;
-      
+
       // Remove trailing slashes for comparison
       const normalizeParent = parentPath.replace(/\/$/, '');
       const normalizeChild = childPath.replace(/\/$/, '');
-      
+
       // Child should start with parent path
-      return normalizeChild.startsWith(normalizeParent + '/') || 
+      return normalizeChild.startsWith(normalizeParent + '/') ||
              normalizeChild.startsWith(normalizeParent);
     } catch {
       return false;
@@ -206,10 +206,10 @@ export class ContextFormatterService {
     try {
       const path1 = new URL(url1).pathname.split('/').filter(s => s.length > 0);
       const path2 = new URL(url2).pathname.split('/').filter(s => s.length > 0);
-      
+
       let commonSegments = 0;
       const minLength = Math.min(path1.length, path2.length);
-      
+
       for (let i = 0; i < minLength; i++) {
         if (path1[i] === path2[i]) {
           commonSegments++;
@@ -217,7 +217,7 @@ export class ContextFormatterService {
           break;
         }
       }
-      
+
       return commonSegments / Math.max(path1.length, path2.length, 1);
     } catch {
       return 0;
@@ -253,14 +253,14 @@ export class ContextFormatterService {
       // Prioritize certain document types
       const aPriority = this.getDocumentPriority(a.title, a.url);
       const bPriority = this.getDocumentPriority(b.title, b.url);
-      
+
       if (aPriority !== bPriority) {
         return aPriority - bPriority;
       }
-      
+
       return a.title.localeCompare(b.title);
     });
-    
+
     // Recursively sort children
     hierarchy.forEach(doc => {
       if (doc.children.length > 0) {
@@ -275,17 +275,17 @@ export class ContextFormatterService {
   private getDocumentPriority(title: string, url: string): number {
     const lowerTitle = title.toLowerCase();
     const lowerUrl = url.toLowerCase();
-    
+
     // Highest priority documents
     if (lowerTitle.includes('introduction') || lowerTitle.includes('overview')) return 1;
     if (lowerTitle.includes('getting started') || lowerTitle.includes('quickstart')) return 2;
     if (lowerTitle.includes('installation') || lowerTitle.includes('setup')) return 3;
     if (lowerTitle.includes('tutorial') || lowerTitle.includes('guide')) return 4;
-    
+
     // URL-based priorities
     if (lowerUrl.includes('getting-started') || lowerUrl.includes('quickstart')) return 2;
     if (lowerUrl.includes('installation') || lowerUrl.includes('setup')) return 3;
-    
+
     // Default priority
     return 10;
   }
@@ -295,7 +295,7 @@ export class ContextFormatterService {
    */
   private logHierarchy(hierarchy: DocumentHierarchy[], indent: number): void {
     if (hierarchy.length === 0) return;
-    
+
     const prefix = '  '.repeat(indent);
     hierarchy.forEach(doc => {
       console.error(`${prefix}📄 [L${doc.level}] ${doc.title}`);
@@ -310,16 +310,16 @@ export class ContextFormatterService {
    */
   private convertToSections(hierarchy: DocumentHierarchy[], options: ContextOptions): ContextSection[] {
     console.error(`🔄 [SECTIONS] Converting ${hierarchy.length} hierarchy nodes to sections`);
-    
+
     const sections: ContextSection[] = [];
-    
+
     for (const doc of hierarchy) {
       const section = this.convertDocumentToSection(doc, options);
       if (section) {
         sections.push(section);
       }
     }
-    
+
     console.error(`✅ [SECTIONS] Generated ${sections.length} sections`);
     return sections;
   }
@@ -332,16 +332,16 @@ export class ContextFormatterService {
       console.error(`⚠️ [SECTIONS] Skipping document with no content: ${doc.title}`);
       return null;
     }
-    
+
     // Process content based on format option
     let processedContent = doc.content;
-    
+
     if (options.format === 'summary') {
       processedContent = this.createSummaryContent(doc.content, options.maxSectionLength || 500);
     } else if (options.maxSectionLength && doc.content.length > options.maxSectionLength) {
       processedContent = this.truncateContent(doc.content, options.maxSectionLength);
     }
-    
+
     // Create the main section
     const section: ContextSection = {
       title: doc.title,
@@ -349,7 +349,7 @@ export class ContextFormatterService {
       sourceUrl: doc.url,
       subsections: [],
     };
-    
+
     // Process children as subsections
     if (doc.children.length > 0) {
       for (const child of doc.children) {
@@ -359,7 +359,7 @@ export class ContextFormatterService {
         }
       }
     }
-    
+
     return section;
   }
 
@@ -370,11 +370,11 @@ export class ContextFormatterService {
     if (content.length <= maxLength) {
       return content;
     }
-    
+
     // Try to find a good breaking point (sentence end)
     const sentences = content.split(/[.!?]+/);
     let summary = '';
-    
+
     for (const sentence of sentences) {
       const potentialSummary = summary + sentence + '. ';
       if (potentialSummary.length > maxLength) {
@@ -382,12 +382,12 @@ export class ContextFormatterService {
       }
       summary = potentialSummary;
     }
-    
+
     // Fallback: simple truncation
     if (summary.trim().length === 0) {
       summary = content.substring(0, maxLength - 3) + '...';
     }
-    
+
     return summary.trim();
   }
 
@@ -398,15 +398,15 @@ export class ContextFormatterService {
     if (content.length <= maxLength) {
       return content;
     }
-    
+
     // Find the last complete word within the limit
     const truncated = content.substring(0, maxLength - 3);
     const lastSpaceIndex = truncated.lastIndexOf(' ');
-    
+
     if (lastSpaceIndex > maxLength * 0.8) { // Only cut at word boundary if it's not too far back
       return truncated.substring(0, lastSpaceIndex) + '...';
     }
-    
+
     return truncated + '...';
   }
 
@@ -415,13 +415,13 @@ export class ContextFormatterService {
    */
   private generateContextContent(sections: ContextSection[], options: ContextOptions, baseUrl?: string): string {
     console.error(`📝 [GENERATE] Creating context content from ${sections.length} sections`);
-    
+
     const lines: string[] = [];
-    
+
     // Add header with metadata
     lines.push('# Documentation');
     lines.push('');
-    
+
     if (baseUrl) {
       try {
         const domain = new URL(baseUrl).hostname;
@@ -430,14 +430,14 @@ export class ContextFormatterService {
         lines.push(`Source: ${baseUrl}`);
       }
     }
-    
+
     lines.push(`Generated: ${new Date().toISOString()}`);
     lines.push(`Format: ${options.format}`);
     lines.push(`Sections: ${sections.length}`);
     lines.push('');
     lines.push('---');
     lines.push('');
-    
+
     // Generate table of contents if there are multiple sections
     if (sections.length > 1 && options.sectionHeaders) {
       lines.push('## Table of Contents');
@@ -447,13 +447,13 @@ export class ContextFormatterService {
       lines.push('---');
       lines.push('');
     }
-    
+
     // Generate content for each section
     for (const section of sections) {
       this.generateSectionContent(section, lines, options, 2);
       lines.push(''); // Add spacing between sections
     }
-    
+
     // Add footer
     lines.push('---');
     lines.push('');
@@ -461,10 +461,10 @@ export class ContextFormatterService {
     if (options.includeSourceUrls) {
       lines.push('*Source URLs are preserved for reference and verification.*');
     }
-    
+
     const content = lines.join('\n');
     console.error(`✅ [GENERATE] Generated ${content.length} characters of context content`);
-    
+
     return content;
   }
 
@@ -476,7 +476,7 @@ export class ContextFormatterService {
       const indent = '  '.repeat(level - 1);
       const bullet = level === 1 ? '-' : '*';
       lines.push(`${indent}${bullet} [${section.title}](#${this.slugify(section.title)})`);
-      
+
       if (section.subsections && section.subsections.length > 0) {
         this.generateTableOfContents(section.subsections, lines, level + 1);
       }
@@ -493,19 +493,19 @@ export class ContextFormatterService {
       lines.push(`${headerPrefix} ${section.title}`);
       lines.push('');
     }
-    
+
     // Add source URL if requested
     if (options.includeSourceUrls && section.sourceUrl) {
       lines.push(`*Source: [${section.sourceUrl}](${section.sourceUrl})*`);
       lines.push('');
     }
-    
+
     // Add main content
     if (section.content && section.content.trim().length > 0) {
       lines.push(section.content.trim());
       lines.push('');
     }
-    
+
     // Add subsections
     if (section.subsections && section.subsections.length > 0) {
       for (const subsection of section.subsections) {
@@ -537,7 +537,7 @@ export class ContextFormatterService {
       sectionHeaders: options.sectionHeaders ?? false,
       maxSectionLength: options.maxSectionLength ?? 300,
     };
-    
+
     return this.formatToContext(results, summaryOptions);
   }
 
@@ -546,31 +546,31 @@ export class ContextFormatterService {
    */
   validateContextContent(content: string): { valid: boolean; issues: string[] } {
     const issues: string[] = [];
-    
+
     // Check for minimum content length
     if (content.length < 100) {
       issues.push('Content is too short (minimum 100 characters)');
     }
-    
+
     // Check for proper header structure
     if (!content.startsWith('# ')) {
       issues.push('Missing main header (should start with # Documentation)');
     }
-    
+
     // Check for excessive length (might be too much for context)
     if (content.length > 100000) {
       issues.push(`Content is very long (${content.length} chars, consider using summary format)`);
     }
-    
+
     // Check for proper section structure
     const headerCount = (content.match(/^#{1,6}\s+/gm) || []).length;
     if (headerCount === 0) {
       issues.push('No section headers found');
     }
-    
+
     return {
       valid: issues.length === 0,
-      issues
+      issues,
     };
   }
 
@@ -582,22 +582,22 @@ export class ContextFormatterService {
       // Ensure output directory exists
       const outputDir = resolve(process.cwd(), 'output');
       await fs.mkdir(outputDir, { recursive: true });
-      
+
       // Generate filename based on domain and timestamp
       const domain = this.getDomainFromUrl(baseUrl);
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
       const fileName = `${domain}-${format}-${timestamp}.txt`;
       const filePath = join(outputDir, fileName);
-      
+
       // Write content to file
       await fs.writeFile(filePath, content, 'utf8');
-      
+
       console.error(`💾 [SAVE] context file saved: ${filePath}`);
       console.error(`📁 [SAVE] File size: ${(content.length / 1024).toFixed(2)} KB`);
-      
+
       return {
         filePath,
-        fileName
+        fileName,
       };
     } catch (error) {
       console.error('❌ [SAVE] Failed to save context file:', error);
@@ -613,22 +613,22 @@ export class ContextFormatterService {
       // Generate both formats
       const [summaryResult, fullResult] = await Promise.all([
         this.formatToSummary(results, { includeSourceUrls: false }),
-        this.formatToContext(results, { format: 'full', includeSourceUrls: true, sectionHeaders: true })
+        this.formatToContext(results, { format: 'full', includeSourceUrls: true, sectionHeaders: true }),
       ]);
-      
+
       // Save both files
       const [summaryFileInfo, fullFileInfo] = await Promise.all([
         this.saveToFile(summaryResult.content, baseUrl, 'summary'),
-        this.saveToFile(fullResult.content, baseUrl, 'full')
+        this.saveToFile(fullResult.content, baseUrl, 'full'),
       ]);
-      
-      console.error(`🎉 [SAVE] Both formats saved successfully!`);
+
+      console.error('🎉 [SAVE] Both formats saved successfully!');
       console.error(`   📄 Summary: ${summaryFileInfo.fileName}`);
       console.error(`   📚 Full: ${fullFileInfo.fileName}`);
-      
+
       return {
         summaryFile: summaryFileInfo.filePath,
-        fullFile: fullFileInfo.filePath
+        fullFile: fullFileInfo.filePath,
       };
     } catch (error) {
       console.error('❌ [SAVE] Failed to save both formats:', error);
@@ -662,14 +662,14 @@ export class ContextFormatterService {
   async listSavedFiles(): Promise<string[]> {
     try {
       const outputDir = this.getOutputDirectory();
-      
+
       // Check if output directory exists
       try {
         await fs.access(outputDir);
       } catch {
         return []; // Directory doesn't exist yet
       }
-      
+
       const files = await fs.readdir(outputDir);
       return files.filter(file => file.endsWith('.txt')).sort();
     } catch (error) {
