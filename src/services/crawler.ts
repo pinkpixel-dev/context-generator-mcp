@@ -62,35 +62,35 @@ export class CrawlerService {
         try {
           const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.1';
           const clientOptions: any = {};
-          
+
           // Set base URL if provided (for remote Ollama instances)
           if (process.env.OLLAMA_BASE_URL) {
             clientOptions.host = process.env.OLLAMA_BASE_URL;
           }
-          
+
           // Add API key if provided (some hosted Ollama instances may require it)
           if (process.env.OLLAMA_API_KEY) {
             clientOptions.headers = {
-              'Authorization': `Bearer ${process.env.OLLAMA_API_KEY}`
+              'Authorization': `Bearer ${process.env.OLLAMA_API_KEY}`,
             };
           }
-          
+
           console.error(`🦙 [OLLAMA] Initializing with model: ${ollamaModel}`);
           if (clientOptions.host) {
             console.error(`🦙 [OLLAMA] Using base URL: ${clientOptions.host}`);
           } else {
-            console.error(`🦙 [OLLAMA] Using default local URL (http://localhost:11434)`);
+            console.error('🦙 [OLLAMA] Using default local URL (http://localhost:11434)');
           }
-          
+
           this.crawlOllamaApp = createCrawlOllama({
             model: ollamaModel,
             clientOptions: clientOptions,
           });
-          
+
           console.error('✅ Ollama crawler initialized successfully');
           console.error(`   Model: ${ollamaModel}`);
           console.error(`   Host: ${clientOptions.host || 'localhost:11434 (default)'}`);
-          
+
         } catch (error) {
           console.error('⚠️ Failed to initialize Ollama crawler:', error);
         }
@@ -187,7 +187,7 @@ export class CrawlerService {
       }
 
       console.error(`📋 [DOC-CRAWL] Found ${urlsToCrawl.length} URLs, crawling up to ${maxPages}...`);
-      
+
       // Step 2: Crawl all discovered URLs using your proven x-crawl patterns
       const crawlResults = await this.crawlMultiplePages(urlsToCrawl.slice(0, maxPages), delayMs);
 
@@ -231,7 +231,7 @@ export class CrawlerService {
       console.error(`📊 [X-CRAWL] Crawl completed. Processing ${crawlResults.length} results...`);
 
       const results: CrawlResult[] = [];
-      
+
       for (let index = 0; index < crawlResults.length; index++) {
         const result = crawlResults[index];
         const url = urls[index];
@@ -689,24 +689,24 @@ export class CrawlerService {
       // x-crawl returns structure with page, response, browser objects
       if (data.page) {
         console.error('📝 [EXTRACT] Found data.page object, exploring...');
-        
+
         // Log page object keys for debugging
         if (typeof data.page === 'object') {
           console.error('📝 [EXTRACT] Page object keys:', Object.keys(data.page));
-          
+
           // Common x-crawl page properties to check
           const pageProps = ['html', 'content', 'text', '$', 'evaluate', 'title'];
           for (const prop of pageProps) {
             if (data.page[prop]) {
               console.error(`📝 [EXTRACT] Page has ${prop}: ${typeof data.page[prop]}`);
-              
+
               if (typeof data.page[prop] === 'string') {
                 console.error(`📝 [EXTRACT] Using data.page.${prop}`);
                 return data.page[prop];
               }
             }
           }
-          
+
           // Try to call page.html() if it's a function (some x-crawl versions)
           if (typeof data.page.html === 'function') {
             try {
@@ -719,7 +719,7 @@ export class CrawlerService {
               console.error('⚠️ [EXTRACT] Failed to call page.html():', error);
             }
           }
-          
+
           // Try to call page.content() if it's a function (some x-crawl versions)
           if (typeof data.page.content === 'function') {
             try {
@@ -732,7 +732,7 @@ export class CrawlerService {
               console.error('⚠️ [EXTRACT] Failed to call page.content():', error);
             }
           }
-          
+
           // Recursively extract from page object
           const pageContent = await this.extractContent(data.page);
           if (pageContent) {
@@ -743,12 +743,12 @@ export class CrawlerService {
 
       if (data.response) {
         console.error('📝 [EXTRACT] Found data.response object, exploring...');
-        
+
         if (typeof data.response === 'object' && data.response.data) {
           console.error('📝 [EXTRACT] Using data.response.data');
           return this.extractContent(data.response.data);
         }
-        
+
         // Check for other response properties
         const responseProps = ['html', 'content', 'text', 'body'];
         for (const prop of responseProps) {
