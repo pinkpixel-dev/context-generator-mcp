@@ -1,5 +1,5 @@
 /**
- * Utility functions for the llmstxt-generator server
+ * Utility functions for the context-generator server
  */
 
 /**

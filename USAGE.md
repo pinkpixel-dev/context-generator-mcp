@@ -1,8 +1,8 @@
-# llmstxt-generator MCP Server Usage Guide
+# context-generator MCP Server Usage Guide
 
 ## Overview
 
-The llmstxt-generator is an MCP server that scrapes documentation websites and generates llmstxt files optimized for LLM consumption. It supports multiple documentation platforms and provides intelligent content extraction and formatting.
+The context-generator is an MCP server that scrapes documentation websites and generates context files optimized for LLM consumption. It supports multiple documentation platforms and provides intelligent content extraction and formatting.
 
 ## Features
 
@@ -23,7 +23,7 @@ npm run build
 
 ### 1. scrape_documentation
 
-Scrapes an entire documentation website and generates formatted llmstxt content.
+Scrapes an entire documentation website and generates formatted context content.
 
 **Input Schema:**
 ```json
@@ -100,9 +100,9 @@ Detect the documentation platform type for optimization strategies.
 }
 ```
 
-### 4. generate_llmstxt
+### 4. generate_context
 
-Generate llmstxt format from existing crawl results.
+Generate context format from existing crawl results.
 
 **Input Schema:**
 ```json
@@ -167,21 +167,50 @@ Generate llmstxt format from existing crawl results.
 
 ### Claude Desktop (MCP)
 
-Add to your Claude Desktop configuration:
+Add to your MCP client configuration:
 
 ```json
 {
   "mcpServers": {
-    "llmstxt-generator": {
-      "command": "node",
-      "args": ["path/to/llmstxt-generator-server/dist/index.js"],
-      "env": {}
+    "context-generator": {
+      "command": "npx",
+      "args": [
+          "-y",
+          "@pinkpixel/context-generator",
+      ],
+      "env": {
+        "OPENAI_API_KEY": "sk-xxxxxx",
+        "OPENAI_MODEL": "gpt-5-nano",
+        "OLLAMA_BASE_URL": "http://localhost:11434",
+        "OLLAMA_MODEL": "llama2"
+      }
     }
   }
 }
 ```
 
-### Usage in Claude
+OR
+
+```json
+{
+  "mcpServers": {
+    "context-generator": {
+      "command": "node",
+      "args": [
+        "path/to/context-generator/dist/index.js"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "sk-xxxxxx",
+        "OPENAI_MODEL": "gpt-5-nano",
+        "OLLAMA_BASE_URL": "http://localhost:11434",
+        "OLLAMA_MODEL": "llama2"
+      }
+    }
+  }
+}
+```
+
+### Usage
 
 1. **Preview a page first:**
    ```
@@ -295,7 +324,7 @@ Add to your Claude Desktop configuration:
 
 ## Contributing
 
-The llmstxt-generator server is built with TypeScript and uses:
+The context-generator server is built with TypeScript and uses:
 - **x-crawl**: For reliable web crawling
 - **cheerio**: For HTML parsing and manipulation
 - **turndown**: For HTML to Markdown conversion

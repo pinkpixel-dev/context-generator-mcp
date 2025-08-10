@@ -1,13 +1,13 @@
 /**
- * LlmsTxt Formatter Service
- * Formats extracted content into proper llmstxt format
+ * Context Formatter Service
+ * Formats extracted content into proper context format
  */
-import type { CrawlResult, LlmsTxtOptions, GeneratedLlmsTxt } from '../types/index.js';
-export declare class LlmsTxtFormatterService {
+import type { CrawlResult, ContextOptions, GeneratedContext } from '../types/index.js';
+export declare class ContextFormatterService {
     /**
-     * Main method to format crawl results into llmstxt format
+     * Main method to format crawl results into context format
      */
-    formatToLlmsTxt(results: CrawlResult[], options?: LlmsTxtOptions): Promise<GeneratedLlmsTxt>;
+    formatToContext(results: CrawlResult[], options?: ContextOptions): Promise<GeneratedContext>;
     /**
      * Build a hierarchical document structure from crawl results
      */
@@ -49,11 +49,11 @@ export declare class LlmsTxtFormatterService {
      */
     private logHierarchy;
     /**
-     * Convert document hierarchy to LlmsTxtSection format
+     * Convert document hierarchy to ContextSection format
      */
     private convertToSections;
     /**
-     * Convert a single document and its children to LlmsTxtSection
+     * Convert a single document and its children to ContextSection
      */
     private convertDocumentToSection;
     /**
@@ -65,9 +65,9 @@ export declare class LlmsTxtFormatterService {
      */
     private truncateContent;
     /**
-     * Generate final llmstxt content string from sections
+     * Generate final context content string from sections
      */
-    private generateLlmsTxtContent;
+    private generateContextContent;
     /**
      * Generate table of contents from sections
      */
@@ -83,12 +83,38 @@ export declare class LlmsTxtFormatterService {
     /**
      * Generate a compact summary format (alternative to full format)
      */
-    formatToSummary(results: CrawlResult[], options?: Partial<LlmsTxtOptions>): Promise<GeneratedLlmsTxt>;
+    formatToSummary(results: CrawlResult[], options?: Partial<ContextOptions>): Promise<GeneratedContext>;
     /**
-     * Validate that the generated content meets llmstxt standards
+     * Validate that the generated content meets context standards
      */
-    validateLlmsTxtContent(content: string): {
+    validateContextContent(content: string): {
         valid: boolean;
         issues: string[];
     };
+    /**
+     * Save generated context content to files in the output directory
+     */
+    saveToFile(content: string, baseUrl: string, format?: string): Promise<{
+        filePath: string;
+        fileName: string;
+    }>;
+    /**
+     * Save both summary and full formats to separate files
+     */
+    saveBothFormats(results: CrawlResult[], baseUrl: string): Promise<{
+        summaryFile: string;
+        fullFile: string;
+    }>;
+    /**
+     * Extract domain name from URL for filename
+     */
+    private getDomainFromUrl;
+    /**
+     * Get output directory path
+     */
+    getOutputDirectory(): string;
+    /**
+     * List all saved context files in output directory
+     */
+    listSavedFiles(): Promise<string[]>;
 }

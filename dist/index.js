@@ -1,12 +1,30 @@
 #!/usr/bin/env node
 /**
- * llmstxt-generator MCP Server
+ * context-generator MCP Server
  *
- * An MCP server that scrapes documentation websites and generates llmstxt files.
+ * An MCP server that scrapes documentation websites and generates context files.
  * Based on proven x-crawl patterns for reliable web scraping.
  *
  * Made with ❤️ by Pink Pixel (https://pinkpixel.dev)
  */
+// Complete console logging suppression for MCP protocol compatibility
+// This ensures no library logs interfere with the MCP communication protocol
+const noOp = () => { };
+console.log = noOp;
+console.warn = noOp;
+console.info = noOp;
+console.debug = noOp;
+console.trace = noOp;
+// Environment variables to disable logging in various libraries
+process.env.DEBUG = '';
+process.env.NODE_DEBUG = '';
+process.env.DEBUG_COLORS = 'no';
+process.env.NODE_ENV = process.env.NODE_ENV || 'production';
+process.env.LOG_LEVEL = 'silent';
+process.env.SILENT = 'true';
+process.env.QUIET = 'true';
+process.env.NO_COLOR = 'true';
+process.env.DISABLE_LOGGING = 'true';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError, } from '@modelcontextprotocol/sdk/types.js';
@@ -14,8 +32,8 @@ import { CallToolRequestSchema, ErrorCode, ListToolsRequestSchema, McpError, } f
 import { CrawlerService } from './services/crawler.js';
 import { PlatformDetectorService } from './services/platformDetector.js';
 import { ContentExtractorService } from './services/contentExtractor.js';
-import { LlmsTxtFormatterService } from './services/llmstxtFormatter.js';
-class LlmsTxtGeneratorServer {
+import { ContextFormatterService } from './services/contextFormatter.js';
+class ContextGeneratorServer {
     server;
     crawler;
     detector;
@@ -23,7 +41,7 @@ class LlmsTxtGeneratorServer {
     formatter;
     constructor() {
         this.server = new Server({
-            name: 'llmstxt-generator',
+            name: 'context-generator',
             version: '1.0.0',
         }, {
             capabilities: {
@@ -34,7 +52,7 @@ class LlmsTxtGeneratorServer {
         this.crawler = new CrawlerService();
         this.detector = new PlatformDetectorService();
         this.extractor = new ContentExtractorService();
-        this.formatter = new LlmsTxtFormatterService();
+        this.formatter = new ContextFormatterService();
         this.setupToolHandlers();
     }
     setupToolHandlers() {
@@ -44,7 +62,7 @@ class LlmsTxtGeneratorServer {
                 tools: [
                     {
                         name: 'scrape_documentation',
-                        description: 'Scrape a documentation website and extract content for llmstxt generation',
+                        description: 'Scrape a documentation website and extract content for context generation',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -106,8 +124,8 @@ class LlmsTxtGeneratorServer {
                             required: ['url'],
                         },
                     }, {
-                        name: 'generate_llmstxt',
-                        description: 'Generate llmstxt format from crawled content',
+                        name: 'generate_context',
+                        description: 'Generate context format from crawled content',
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -151,8 +169,8 @@ class LlmsTxtGeneratorServer {
                         return await this.handlePreviewPage(args);
                     case 'detect_platform':
                         return await this.handleDetectPlatform(args);
-                    case 'generate_llmstxt':
-                        return await this.handleGenerateLlmsTxt(args);
+                    case 'generate_context':
+                        return await this.handleGenerateContext(args);
                     default:
                         throw new McpError(ErrorCode.MethodNotFound, `Tool not found: ${name}`);
                 }
@@ -214,35 +232,35 @@ class LlmsTxtGeneratorServer {
                 }
             }
             console.error(`✅ [SCRAPE-DOC] Processed ${processedResults.length} pages`);
-            // Step 4: Format to llmstxt
-            console.error(`📝 [SCRAPE-DOC] Step 4: Generating llmstxt format...`);
+            // Step 4: Format to context
+            console.error(`📝 [SCRAPE-DOC] Step 4: Generating context format...`);
             const results = [];
             // Generate both formats if requested
             if (options.outputFormat === 'both' || options.outputFormat === 'llms-txt') {
-                const summaryLlmsTxt = await this.formatter.formatToSummary(processedResults, {
+                const summaryContext = await this.formatter.formatToSummary(processedResults, {
                     includeSourceUrls: false,
                     sectionHeaders: false,
                     maxSectionLength: 300
                 });
                 results.push({
                     type: 'text',
-                    text: `# 📄 Summary Format (llms.txt)\n\n${summaryLlmsTxt.content}`
+                    text: `# 📄 Summary Format (llms.txt)\n\n${summaryContext.content}`
                 });
             }
             if (options.outputFormat === 'both' || options.outputFormat === 'llms-full-txt') {
-                const fullLlmsTxt = await this.formatter.formatToLlmsTxt(processedResults, {
+                const fullContext = await this.formatter.formatToContext(processedResults, {
                     format: 'full',
                     includeSourceUrls: true,
                     sectionHeaders: true
                 });
                 // Validate the generated content
-                const validation = this.formatter.validateLlmsTxtContent(fullLlmsTxt.content);
+                const validation = this.formatter.validateContextContent(fullContext.content);
                 if (!validation.valid) {
                     console.error(`⚠️ [SCRAPE-DOC] Content validation issues: ${validation.issues.join(', ')}`);
                 }
                 results.push({
                     type: 'text',
-                    text: `# 📚 Full Format (llms-full.txt)\n\n${fullLlmsTxt.content}`
+                    text: `# 📚 Full Format (llms-full.txt)\n\n${fullContext.content}`
                 });
             }
             // Step 5: Generate summary report
@@ -261,7 +279,7 @@ class LlmsTxtGeneratorServer {
                     `- **Failed:** ${failedCount}\n` +
                     `- **Duration:** ${duration}s\n` +
                     `- **Output Format:** ${options.outputFormat}\n\n` +
-                    `**✨ Generated llmstxt files are ready for use with LLMs!**\n\n` +
+                    `**✨ Generated context files are ready for use with LLMs!**\n\n` +
                     `*Made with ❤️ by Pink Pixel (https://pinkpixel.dev)*`
             };
             console.error(`🎉 [SCRAPE-DOC] Documentation scraping completed in ${duration}s!`);
@@ -381,9 +399,9 @@ class LlmsTxtGeneratorServer {
             };
         }
     }
-    async handleGenerateLlmsTxt(args) {
+    async handleGenerateContext(args) {
         try {
-            console.error(`📝 [GENERATE] Starting llmstxt generation for ${args.crawlResults.length} crawl results`);
+            console.error(`📝 [GENERATE] Starting context generation for ${args.crawlResults.length} crawl results`);
             const startTime = Date.now();
             // Validate input
             if (!args.crawlResults || args.crawlResults.length === 0) {
@@ -398,6 +416,9 @@ class LlmsTxtGeneratorServer {
             };
             console.error(`📝 [GENERATE] Options: ${JSON.stringify(options, null, 2)}`);
             const results = [];
+            const savedFiles = [];
+            // Get base URL for file saving
+            const baseUrl = args.crawlResults.find(r => r.url)?.url || 'unknown';
             // Generate summary format
             if (options.format === 'summary' || options.format === 'both') {
                 console.error(`📝 [GENERATE] Generating summary format...`);
@@ -406,28 +427,34 @@ class LlmsTxtGeneratorServer {
                     sectionHeaders: options.sectionHeaders,
                     maxSectionLength: Math.min(options.maxSectionLength, 500)
                 });
+                // Save summary file
+                const summaryFileInfo = await this.formatter.saveToFile(summaryResult.content, baseUrl, 'summary');
+                savedFiles.push(summaryFileInfo.fileName);
                 results.push({
                     type: 'text',
-                    text: `# 📄 Summary Format (llms.txt)\n\n${summaryResult.content}`
+                    text: `# 📄 Summary Format (llms.txt)\n\n**💾 Saved as:** \`${summaryFileInfo.fileName}\`\n\n${summaryResult.content}`
                 });
             }
             // Generate full format
             if (options.format === 'full' || options.format === 'both') {
                 console.error(`📝 [GENERATE] Generating full format...`);
-                const fullResult = await this.formatter.formatToLlmsTxt(args.crawlResults, {
+                const fullResult = await this.formatter.formatToContext(args.crawlResults, {
                     format: 'full',
                     includeSourceUrls: options.includeSourceUrls,
                     sectionHeaders: options.sectionHeaders,
                     maxSectionLength: options.maxSectionLength
                 });
                 // Validate the generated content
-                const validation = this.formatter.validateLlmsTxtContent(fullResult.content);
+                const validation = this.formatter.validateContextContent(fullResult.content);
                 if (!validation.valid) {
                     console.error(`⚠️ [GENERATE] Content validation issues: ${validation.issues.join(', ')}`);
                 }
+                // Save full format file
+                const fullFileInfo = await this.formatter.saveToFile(fullResult.content, baseUrl, 'full');
+                savedFiles.push(fullFileInfo.fileName);
                 results.push({
                     type: 'text',
-                    text: `# 📂 Full Format (llms-full.txt)\n\n${fullResult.content}`
+                    text: `# 📂 Full Format (llms-full.txt)\n\n**💾 Saved as:** \`${fullFileInfo.fileName}\`\n\n${fullResult.content}`
                 });
                 // Add validation report if there are issues
                 if (!validation.valid) {
@@ -443,9 +470,10 @@ class LlmsTxtGeneratorServer {
             const endTime = Date.now();
             const duration = Math.round((endTime - startTime) / 1000);
             // Add generation summary
+            const outputDir = this.formatter.getOutputDirectory();
             const summaryReport = {
                 type: 'text',
-                text: `## 🎉 llmstxt Generation Complete!\n\n` +
+                text: `## 🎉 context Generation Complete!\n\n` +
                     `**📅 Generation Summary:**\n` +
                     `- **Source Results:** ${args.crawlResults.length}\n` +
                     `- **Format:** ${options.format}\n` +
@@ -453,20 +481,23 @@ class LlmsTxtGeneratorServer {
                     `- **Section Headers:** ${options.sectionHeaders ? '✅ Yes' : '❌ No'}\n` +
                     `- **Max Section Length:** ${options.maxSectionLength} chars\n` +
                     `- **Generation Time:** ${duration}s\n\n` +
-                    `**✨ Your llmstxt content is ready for use with LLMs!**\n\n` +
+                    `**💾 Files Saved:**\n` +
+                    savedFiles.map(file => `  - \`${file}\``).join('\n') + '\n\n' +
+                    `**📁 Output Directory:** \`${outputDir}\`\n\n` +
+                    `**✨ Your context files are saved and ready for use with LLMs!**\n\n` +
                     `*Made with ❤️ by Pink Pixel (https://pinkpixel.dev)*`
             };
-            console.error(`🎉 [GENERATE] llmstxt generation completed in ${duration}s!`);
+            console.error(`🎉 [GENERATE] context generation completed in ${duration}s!`);
             return {
                 content: [summaryReport, ...results]
             };
         }
         catch (error) {
-            console.error(`❌ [GENERATE] llmstxt generation failed:`, error);
+            console.error(`❌ [GENERATE] context generation failed:`, error);
             return {
                 content: [{
                         type: 'text',
-                        text: `❌ **llmstxt Generation Failed**\n\n` +
+                        text: `❌ **context Generation Failed**\n\n` +
                             `**Error:** ${error instanceof Error ? error.message : 'Unknown error'}\n\n` +
                             `**Input:** ${args.crawlResults?.length || 0} crawl results\n` +
                             `**Options:** ${JSON.stringify(args.options || {}, null, 2)}\n\n` +
@@ -477,15 +508,15 @@ class LlmsTxtGeneratorServer {
         }
     }
     async run() {
-        console.error('🚀 Starting llmstxt-generator MCP server...');
+        console.error('🚀 Starting context-generator MCP server...');
         const transport = new StdioServerTransport();
         await this.server.connect(transport);
-        console.error('✅ llmstxt-generator MCP server is running!');
+        console.error('✅ context-generator MCP server is running!');
         console.error('✨ Made with ❤️ by Pink Pixel (https://pinkpixel.dev)');
     }
 }
 // Start the server
-const server = new LlmsTxtGeneratorServer();
+const server = new ContextGeneratorServer();
 server.run().catch((error) => {
     console.error('❌ Failed to start server:', error);
     process.exit(1);

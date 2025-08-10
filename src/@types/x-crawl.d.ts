@@ -13,9 +13,18 @@ declare module 'x-crawl' {
   }
 
   export interface CrawlPageOptions {
+    targets: string | string[];
     timeout?: number;
+    maxRetry?: number;
+    intervalTime?: number | { max: number; min: number };
     device?: string;
-    fingerprint?: any;
+    fingerprint?: {
+      mobile?: boolean;
+      platform?: string;
+      acceptLanguage?: string;
+      userAgent?: string;
+      [key: string]: any;
+    };
     [key: string]: any;
   }
 
@@ -29,18 +38,22 @@ declare module 'x-crawl' {
     data?: {
       html?: string;
       text?: string;
+      content?: string;
       [key: string]: any;
     };
     id?: string;
     statusCode?: number;
+    message?: string;
     res?: any;
   }
 
   export class XCrawl {
     constructor(config?: CrawlConfig);
-    crawlPage(options: string | CrawlPageOptions | Array<string | CrawlPageOptions>): Promise<CrawlResult | CrawlResult[]>;
+    crawlPage(options: CrawlPageOptions): Promise<CrawlResult[]>;
     crawlData(options: string | CrawlDataOptions | Array<string | CrawlDataOptions>): Promise<CrawlResult | CrawlResult[]>;
   }
 
-  export default function xCrawl(config?: CrawlConfig): XCrawl;
+  export function createCrawl(config?: CrawlConfig): XCrawl;
+  export function createCrawlOpenAI(config?: any): any;
+  export function createCrawlOllama(config?: any): any;
 }

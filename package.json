@@ -1,7 +1,7 @@
 {
-  "name": "@pinkpixel/llmstxt-generator",
+  "name": "@pinkpixel/context-generator",
   "version": "1.0.0",
-  "description": "MCP server that scrapes documentation websites and generates llmstxt files using x-crawl",
+  "description": "MCP server that scrapes documentation websites and generates context files using x-crawl",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
@@ -18,7 +18,7 @@
     "model-context-protocol",
     "documentation",
     "scraping",
-    "llmstxt",
+    "context",
     "x-crawl",
     "ai"
   ],

@@ -8,7 +8,8 @@ export declare class CrawlerService {
     private crawlOpenAIApp;
     private initialized;
     constructor();
-    initialize(): Promise<void>; /**
+    initialize(): Promise<void>;
+    /**
      * Discover all documentation URLs from a base URL
      * Uses multiple strategies: sitemap, navigation analysis, and link following
      */
@@ -16,27 +17,44 @@ export declare class CrawlerService {
     /**
      * Main documentation crawling method - based on your proven patterns
      */
-    crawlDocumentation(url: string, options?: CrawlOptions): Promise<CrawlResult[]>; /**
+    crawlDocumentation(url: string, options?: CrawlOptions): Promise<CrawlResult[]>;
+    /**
      * Crawl multiple pages using your proven x-crawl patterns
      */
-    private crawlMultiplePages; /**
+    private crawlMultiplePages;
+    /**
      * Extract documentation-specific data from crawl results
      */
-    private extractDocumentationData; /**
+    private extractDocumentationData;
+    /**
      * Discover URLs from sitemap.xml
      */
     private discoverFromSitemap;
     /**
      * Discover URLs from navigation analysis
      */
-    private discoverFromNavigation; /**
+    private discoverFromNavigation;
+    /**
      * Extract documentation links from HTML content
      */
     private extractDocumentationLinks;
     /**
      * Check if URL is likely a documentation page
      */
-    private isDocumentationUrl; /**
+    private isDocumentationUrl;
+    /**
+     * Simple crawl page method (similar to working CourseCrafter implementation)
+     */
+    crawlPage(url: string, options?: any): Promise<CrawlResult>;
+    /**
+     * Extract content using proven CourseCrafter approach
+     */
+    private extractContent;
+    /**
+     * Extract title from crawl data
+     */
+    private extractTitle;
+    /**
      * Crawl a single page for preview purposes
      */
     crawlSinglePage(url: string): Promise<CrawlResult>;

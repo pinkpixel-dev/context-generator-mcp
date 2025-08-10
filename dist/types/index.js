@@ -1,2 +1,2 @@
-// Core types for the llmstxt generator MCP server
+// Core types for the context generator MCP server
 export {};

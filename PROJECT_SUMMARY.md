@@ -1,8 +1,8 @@
-# llmstxt-generator MCP Server - Project Completion Summary
+# context-generator MCP Server - Project Completion Summary
 
 ## 🎉 Project Status: COMPLETE ✅
 
-The llmstxt-generator MCP server has been successfully implemented and is fully functional. All core features have been developed, tested, and are ready for production use.
+The context-generator MCP server has been successfully implemented and is fully functional. All core features have been developed, tested, and are ready for production use.
 
 ## 🚀 What Was Built
 
@@ -39,13 +39,13 @@ The llmstxt-generator MCP server has been successfully implemented and is fully 
 - **Content Validation**: Quality checks and filtering
 - **Platform-Specific Optimization**: Tailored extraction per platform
 
-#### 4. LlmsTxtFormatterService (`src/services/llmstxtFormatter.ts`)
+#### 4. ContextFormatterService (`src/services/contextFormatter.ts`)
 - **Document Hierarchy Building**: Intelligent document organization
 - **Hierarchical Sectioning**: Parent-child relationship mapping
 - **Multiple Output Formats**: Summary and full formats
 - **Content Truncation**: Smart content length management
 - **Table of Contents**: Automatic TOC generation
-- **Content Validation**: llmstxt format compliance checking
+- **Content Validation**: context format compliance checking
 - **Metadata Generation**: Rich metadata for generated content
 
 ### MCP Tool Handlers
@@ -72,7 +72,7 @@ The llmstxt-generator MCP server has been successfully implemented and is fully 
 - **Optimization Tips**: Platform-specific crawling recommendations
 - **Performance Metrics**: Detection timing and statistics
 
-#### 4. generate_llmstxt ✅
+#### 4. generate_context ✅
 - **Format Generation**: Multiple output format support
 - **Content Validation**: Format compliance checking
 - **Metadata Integration**: Rich metadata generation
@@ -170,7 +170,7 @@ The llmstxt-generator MCP server has been successfully implemented and is fully 
 ## 📁 Project Structure
 
 ```
-llmstxt-generator-server/
+context-generator-server/
 ├── src/
 │   ├── index.ts                    # Main server implementation ✅
 │   ├── types/
@@ -179,7 +179,7 @@ llmstxt-generator-server/
 │   │   ├── crawler.ts             # Web crawling service ✅
 │   │   ├── platformDetector.ts    # Platform detection service ✅
 │   │   ├── contentExtractor.ts    # Content extraction service ✅
-│   │   └── llmstxtFormatter.ts    # Content formatting service ✅
+│   │   └── contextFormatter.ts    # Content formatting service ✅
 │   └── utils/
 │       ├── urlUtils.ts            # URL utilities ✅
 │       ├── contentUtils.ts        # Content utilities ✅
@@ -204,7 +204,7 @@ llmstxt-generator-server/
 1. **Platform Detection**: `detect_platform` → optimization insights
 2. **Content Preview**: `preview_page` → single page validation
 3. **Documentation Scraping**: `scrape_documentation` → full site crawling
-4. **Custom Formatting**: `generate_llmstxt` → format existing data
+4. **Custom Formatting**: `generate_context` → format existing data
 
 ## 🎯 Key Features Delivered
 
@@ -240,7 +240,7 @@ llmstxt-generator-server/
 
 ## 🚀 Ready for Production
 
-The llmstxt-generator MCP server is production-ready with:
+The context-generator MCP server is production-ready with:
 
 - **✅ Complete Implementation**: All planned features implemented
 - **✅ Type Safety**: Full TypeScript coverage
@@ -253,7 +253,7 @@ The llmstxt-generator MCP server is production-ready with:
 
 This project successfully delivers a comprehensive, production-ready MCP server that:
 
-1. **Solves the Core Problem**: Efficiently converts documentation websites to llmstxt format
+1. **Solves the Core Problem**: Efficiently converts documentation websites to context format
 2. **Supports Multiple Platforms**: Works with major documentation platforms out of the box
 3. **Provides Flexibility**: Multiple output formats and configuration options
 4. **Maintains Quality**: Robust error handling and content validation

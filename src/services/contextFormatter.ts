@@ -1,9 +1,11 @@
 /**
- * LlmsTxt Formatter Service
- * Formats extracted content into proper llmstxt format
+ * Context Formatter Service
+ * Formats extracted content into proper context format
  */
 
-import type { CrawlResult, LlmsTxtOptions, GeneratedLlmsTxt, LlmsTxtSection } from '../types/index.js';
+import type { CrawlResult, ContextOptions, GeneratedContext, ContextSection } from '../types/index.js';
+import { promises as fs } from 'fs';
+import { join, resolve } from 'path';
 
 interface DocumentHierarchy {
   title: string;
@@ -13,15 +15,15 @@ interface DocumentHierarchy {
   children: DocumentHierarchy[];
 }
 
-export class LlmsTxtFormatterService {
+export class ContextFormatterService {
   /**
-   * Main method to format crawl results into llmstxt format
+   * Main method to format crawl results into context format
    */
-  async formatToLlmsTxt(results: CrawlResult[], options: LlmsTxtOptions = {
+  async formatToContext(results: CrawlResult[], options: ContextOptions = {
     format: 'full',
     includeSourceUrls: true,
     sectionHeaders: true,
-  }): Promise<GeneratedLlmsTxt> {
+  }): Promise<GeneratedContext> {
     console.error(`📝 [LLMSTXT-FORMAT] Starting formatting of ${results.length} crawl results`);
     console.error(`📋 [LLMSTXT-FORMAT] Options: ${JSON.stringify(options, null, 2)}`);
     
@@ -41,8 +43,8 @@ export class LlmsTxtFormatterService {
     // Convert to sections
     const sections = this.convertToSections(hierarchy, options);
     
-    // Generate the final llmstxt content
-    const content = this.generateLlmsTxtContent(sections, options, successfulResults[0]?.url);
+    // Generate the final context content
+    const content = this.generateContextContent(sections, options, successfulResults[0]?.url);
     
     const metadata = {
       generatedAt: new Date().toISOString(),
@@ -304,12 +306,12 @@ export class LlmsTxtFormatterService {
   }
 
   /**
-   * Convert document hierarchy to LlmsTxtSection format
+   * Convert document hierarchy to ContextSection format
    */
-  private convertToSections(hierarchy: DocumentHierarchy[], options: LlmsTxtOptions): LlmsTxtSection[] {
+  private convertToSections(hierarchy: DocumentHierarchy[], options: ContextOptions): ContextSection[] {
     console.error(`🔄 [SECTIONS] Converting ${hierarchy.length} hierarchy nodes to sections`);
     
-    const sections: LlmsTxtSection[] = [];
+    const sections: ContextSection[] = [];
     
     for (const doc of hierarchy) {
       const section = this.convertDocumentToSection(doc, options);
@@ -323,9 +325,9 @@ export class LlmsTxtFormatterService {
   }
 
   /**
-   * Convert a single document and its children to LlmsTxtSection
+   * Convert a single document and its children to ContextSection
    */
-  private convertDocumentToSection(doc: DocumentHierarchy, options: LlmsTxtOptions): LlmsTxtSection | null {
+  private convertDocumentToSection(doc: DocumentHierarchy, options: ContextOptions): ContextSection | null {
     if (!doc.content || doc.content.trim().length === 0) {
       console.error(`⚠️ [SECTIONS] Skipping document with no content: ${doc.title}`);
       return null;
@@ -341,7 +343,7 @@ export class LlmsTxtFormatterService {
     }
     
     // Create the main section
-    const section: LlmsTxtSection = {
+    const section: ContextSection = {
       title: doc.title,
       content: processedContent,
       sourceUrl: doc.url,
@@ -409,10 +411,10 @@ export class LlmsTxtFormatterService {
   }
 
   /**
-   * Generate final llmstxt content string from sections
+   * Generate final context content string from sections
    */
-  private generateLlmsTxtContent(sections: LlmsTxtSection[], options: LlmsTxtOptions, baseUrl?: string): string {
-    console.error(`📝 [GENERATE] Creating llmstxt content from ${sections.length} sections`);
+  private generateContextContent(sections: ContextSection[], options: ContextOptions, baseUrl?: string): string {
+    console.error(`📝 [GENERATE] Creating context content from ${sections.length} sections`);
     
     const lines: string[] = [];
     
@@ -461,7 +463,7 @@ export class LlmsTxtFormatterService {
     }
     
     const content = lines.join('\n');
-    console.error(`✅ [GENERATE] Generated ${content.length} characters of llmstxt content`);
+    console.error(`✅ [GENERATE] Generated ${content.length} characters of context content`);
     
     return content;
   }
@@ -469,7 +471,7 @@ export class LlmsTxtFormatterService {
   /**
    * Generate table of contents from sections
    */
-  private generateTableOfContents(sections: LlmsTxtSection[], lines: string[], level: number): void {
+  private generateTableOfContents(sections: ContextSection[], lines: string[], level: number): void {
     for (const section of sections) {
       const indent = '  '.repeat(level - 1);
       const bullet = level === 1 ? '-' : '*';
@@ -484,7 +486,7 @@ export class LlmsTxtFormatterService {
   /**
    * Generate content for a single section and its subsections
    */
-  private generateSectionContent(section: LlmsTxtSection, lines: string[], options: LlmsTxtOptions, level: number): void {
+  private generateSectionContent(section: ContextSection, lines: string[], options: ContextOptions, level: number): void {
     // Add section header
     if (options.sectionHeaders) {
       const headerPrefix = '#'.repeat(level);
@@ -528,21 +530,21 @@ export class LlmsTxtFormatterService {
   /**
    * Generate a compact summary format (alternative to full format)
    */
-  async formatToSummary(results: CrawlResult[], options: Partial<LlmsTxtOptions> = {}): Promise<GeneratedLlmsTxt> {
-    const summaryOptions: LlmsTxtOptions = {
+  async formatToSummary(results: CrawlResult[], options: Partial<ContextOptions> = {}): Promise<GeneratedContext> {
+    const summaryOptions: ContextOptions = {
       format: 'summary',
       includeSourceUrls: options.includeSourceUrls ?? false,
       sectionHeaders: options.sectionHeaders ?? false,
       maxSectionLength: options.maxSectionLength ?? 300,
     };
     
-    return this.formatToLlmsTxt(results, summaryOptions);
+    return this.formatToContext(results, summaryOptions);
   }
 
   /**
-   * Validate that the generated content meets llmstxt standards
+   * Validate that the generated content meets context standards
    */
-  validateLlmsTxtContent(content: string): { valid: boolean; issues: string[] } {
+  validateContextContent(content: string): { valid: boolean; issues: string[] } {
     const issues: string[] = [];
     
     // Check for minimum content length
@@ -570,5 +572,109 @@ export class LlmsTxtFormatterService {
       valid: issues.length === 0,
       issues
     };
+  }
+
+  /**
+   * Save generated context content to files in the output directory
+   */
+  async saveToFile(content: string, baseUrl: string, format: string = 'full'): Promise<{ filePath: string; fileName: string }> {
+    try {
+      // Ensure output directory exists
+      const outputDir = resolve(process.cwd(), 'output');
+      await fs.mkdir(outputDir, { recursive: true });
+      
+      // Generate filename based on domain and timestamp
+      const domain = this.getDomainFromUrl(baseUrl);
+      const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+      const fileName = `${domain}-${format}-${timestamp}.txt`;
+      const filePath = join(outputDir, fileName);
+      
+      // Write content to file
+      await fs.writeFile(filePath, content, 'utf8');
+      
+      console.error(`💾 [SAVE] context file saved: ${filePath}`);
+      console.error(`📁 [SAVE] File size: ${(content.length / 1024).toFixed(2)} KB`);
+      
+      return {
+        filePath,
+        fileName
+      };
+    } catch (error) {
+      console.error('❌ [SAVE] Failed to save context file:', error);
+      throw new Error(`Failed to save file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    }
+  }
+
+  /**
+   * Save both summary and full formats to separate files
+   */
+  async saveBothFormats(results: CrawlResult[], baseUrl: string): Promise<{ summaryFile: string; fullFile: string }> {
+    try {
+      // Generate both formats
+      const [summaryResult, fullResult] = await Promise.all([
+        this.formatToSummary(results, { includeSourceUrls: false }),
+        this.formatToContext(results, { format: 'full', includeSourceUrls: true, sectionHeaders: true })
+      ]);
+      
+      // Save both files
+      const [summaryFileInfo, fullFileInfo] = await Promise.all([
+        this.saveToFile(summaryResult.content, baseUrl, 'summary'),
+        this.saveToFile(fullResult.content, baseUrl, 'full')
+      ]);
+      
+      console.error(`🎉 [SAVE] Both formats saved successfully!`);
+      console.error(`   📄 Summary: ${summaryFileInfo.fileName}`);
+      console.error(`   📚 Full: ${fullFileInfo.fileName}`);
+      
+      return {
+        summaryFile: summaryFileInfo.filePath,
+        fullFile: fullFileInfo.filePath
+      };
+    } catch (error) {
+      console.error('❌ [SAVE] Failed to save both formats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Extract domain name from URL for filename
+   */
+  private getDomainFromUrl(url: string): string {
+    try {
+      const domain = new URL(url).hostname;
+      // Clean domain for filename (remove dots, etc.)
+      return domain.replace(/\./g, '-').replace(/[^a-zA-Z0-9-]/g, '').toLowerCase();
+    } catch {
+      return 'unknown-site';
+    }
+  }
+
+  /**
+   * Get output directory path
+   */
+  getOutputDirectory(): string {
+    return resolve(process.cwd(), 'output');
+  }
+
+  /**
+   * List all saved context files in output directory
+   */
+  async listSavedFiles(): Promise<string[]> {
+    try {
+      const outputDir = this.getOutputDirectory();
+      
+      // Check if output directory exists
+      try {
+        await fs.access(outputDir);
+      } catch {
+        return []; // Directory doesn't exist yet
+      }
+      
+      const files = await fs.readdir(outputDir);
+      return files.filter(file => file.endsWith('.txt')).sort();
+    } catch (error) {
+      console.error('❌ [LIST] Failed to list saved files:', error);
+      return [];
+    }
   }
 }

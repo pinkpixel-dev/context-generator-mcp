@@ -58,21 +58,21 @@ export interface ExtractedContent {
         code: string;
     }>;
 }
-export interface LlmsTxtOptions {
+export interface ContextOptions {
     format: 'summary' | 'full' | 'both';
     includeSourceUrls: boolean;
     sectionHeaders: boolean;
     maxSectionLength?: number;
 }
-export interface LlmsTxtSection {
+export interface ContextSection {
     title: string;
     content: string;
     sourceUrl: string;
-    subsections?: LlmsTxtSection[];
+    subsections?: ContextSection[];
 }
-export interface GeneratedLlmsTxt {
+export interface GeneratedContext {
     content: string;
-    sections: LlmsTxtSection[];
+    sections: ContextSection[];
     metadata: {
         generatedAt: string;
         sourceCount: number;
@@ -90,7 +90,7 @@ export interface PreviewPageInput {
 export interface DetectPlatformInput {
     url: string;
 }
-export interface GenerateLlmsTxtInput {
+export interface GenerateContextInput {
     crawlResults: CrawlResult[];
-    options?: LlmsTxtOptions;
+    options?: ContextOptions;
 }

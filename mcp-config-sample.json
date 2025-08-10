@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "context-generator": {
+      "command": "node",
+      "args": [
+        "path/to/context-generator/dist/index.js"
+      ],
+      "env": {
+        "OPENAI_API_KEY": "sk-xxxxxx",
+        "OPENAI_MODEL": "gpt-5-nano",
+        "OLLAMA_BASE_URL": "http://localhost:11434",
+        "OLLAMA_MODEL": "llama2"
+      }
+    }
+  }
+}

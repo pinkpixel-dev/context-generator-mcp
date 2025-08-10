@@ -3,7 +3,7 @@
  * Handles web scraping with documentation-specific enhancements
  */
 
-import xCrawl from 'x-crawl';
+import { createCrawl, createCrawlOpenAI, createCrawlOllama } from 'x-crawl';
 import { load } from 'cheerio';
 import type { CrawlOptions, CrawlResult, DocumentationSite } from '../types/index.js';
 
@@ -30,22 +30,53 @@ export class CrawlerService {
       console.error('🔧 Initializing x-crawl service with documentation enhancements...');
       
       // Create crawler application with configuration (based on your proven patterns)
-      this.crawlApp = xCrawl({
+      this.crawlApp = createCrawl({
         maxRetry: 3,
-        intervalTime: 2000,
-        crawlPage: {
-          puppeteerLaunch: {
-            headless: true,
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
-          }
-        }
+        intervalTime: 2000
       });
 
-      // Create OpenAI crawler application (optional, for AI-assisted crawling)
+      // Initialize OpenAI crawler if API key is available
       if (process.env.OPENAI_API_KEY) {
-        console.error('ℹ️ OpenAI support would be available (not implemented yet)');
+        try {
+          this.crawlOpenAIApp = createCrawlOpenAI({
+            clientOptions: {
+              apiKey: process.env.OPENAI_API_KEY,
+            },
+            defaultModel: {
+              chatModel: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
+            }
+          });
+          console.error('✅ OpenAI crawler initialized with API key');
+        } catch (error) {
+          console.error('⚠️ Failed to initialize OpenAI crawler:', error);
+        }
       } else {
-        console.error('ℹ️ OpenAI API key not found, x-crawl initialized without AI support');
+        console.error('ℹ️ OpenAI API key not found, x-crawl initialized without OpenAI support');
+      }
+
+      // Initialize Ollama crawler if available
+      if (process.env.OLLAMA_API_KEY || process.env.OLLAMA_BASE_URL) {
+        try {
+          const ollamaOptions: any = {};
+          
+          if (process.env.OLLAMA_API_KEY) {
+            ollamaOptions.apiKey = process.env.OLLAMA_API_KEY;
+          }
+          
+          if (process.env.OLLAMA_BASE_URL) {
+            ollamaOptions.baseURL = process.env.OLLAMA_BASE_URL;
+          }
+          
+          // Note: createCrawlOllama might need different configuration
+          // This is a placeholder - adjust based on x-crawl's actual Ollama API
+          console.error('ℹ️ Ollama configuration detected but not implemented yet');
+          console.error(`   Base URL: ${process.env.OLLAMA_BASE_URL || 'default'}`);
+          console.error(`   Model: ${process.env.OLLAMA_MODEL || 'default'}`);
+        } catch (error) {
+          console.error('⚠️ Failed to initialize Ollama crawler:', error);
+        }
+      } else {
+        console.error('ℹ️ Ollama configuration not found, x-crawl initialized without Ollama support');
       }
 
       this.initialized = true;
@@ -55,7 +86,9 @@ export class CrawlerService {
       console.error('❌ Failed to initialize x-crawl for documentation:', error);
       throw error;
     }
-  }  /**
+  }
+
+  /**
    * Discover all documentation URLs from a base URL
    * Uses multiple strategies: sitemap, navigation analysis, and link following
    */
@@ -111,7 +144,14 @@ export class CrawlerService {
       const urlsToCrawl = await this.discoverDocumentationUrls(url, options);
       
       if (urlsToCrawl.length === 0) {
-        throw new Error('No documentation URLs discovered');
+        console.error(`⚠️ [DOC-CRAWL] No URLs discovered via sitemap/navigation, falling back to base URL`);
+        // Fallback: just crawl the base URL if discovery fails
+        const baseResult = await this.crawlSinglePage(url);
+        if (baseResult.success) {
+          return [baseResult];
+        } else {
+          throw new Error('No documentation URLs discovered and base URL crawl failed');
+        }
       }
       
       // Step 2: Crawl all discovered URLs using your proven x-crawl patterns
@@ -126,7 +166,9 @@ export class CrawlerService {
       console.error(`❌ [DOC-CRAWL] Documentation crawl failed for: ${url}`, error);
       throw error;
     }
-  }  /**
+  }
+
+  /**
    * Crawl multiple pages using your proven x-crawl patterns
    */
   private async crawlMultiplePages(urls: string[], delayMs: number): Promise<CrawlResult[]> {
@@ -143,12 +185,12 @@ export class CrawlerService {
       const crawlResults = await this.crawlApp.crawlPage({
         targets: urls,
         maxRetry: 2,
-        intervalTime: { max: delayMs + 500, min: delayMs },
+        intervalTime: delayMs,
         fingerprint: {
           mobile: false,
           platform: 'win32',
           acceptLanguage: 'en-US,en;q=0.9',
-          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 llmstxt-generator/1.0'
+          userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 context-generator/1.0'
         }
       });
 
@@ -197,7 +239,9 @@ export class CrawlerService {
       console.error('❌ [X-CRAWL] Crawl operation failed:', error);
       throw error;
     }
-  }  /**
+  }
+
+  /**
    * Extract documentation-specific data from crawl results
    */
   private extractDocumentationData(data: any, url: string): { title: string; content: string; html: string } {
@@ -277,7 +321,9 @@ export class CrawlerService {
     content = content.replace(/\s+/g, ' ').trim();
     
     return { title, content, html };
-  }  /**
+  }
+
+  /**
    * Discover URLs from sitemap.xml
    */
   private async discoverFromSitemap(baseUrl: string): Promise<string[]> {
@@ -375,7 +421,9 @@ export class CrawlerService {
     
     console.error(`🧭 [NAVIGATION] Discovered ${urls.size} URLs via navigation (depth: ${currentDepth})`);
     return Array.from(urls);
-  }  /**
+  }
+
+  /**
    * Extract documentation links from HTML content
    */
   private extractDocumentationLinks(data: any, baseUrl: string): string[] {
@@ -462,7 +510,201 @@ export class CrawlerService {
     } catch {
       return false;
     }
-  }  /**
+  }
+
+  /**
+   * Simple crawl page method (similar to working CourseCrafter implementation)
+   */
+  async crawlPage(url: string, options: any = {}): Promise<CrawlResult> {
+    if (!this.initialized) {
+      throw new Error('CrawlerService not initialized. Call initialize() first.');
+    }
+
+    try {
+      console.error(`🕷️ Crawling page: ${url}`);
+      
+      const result = await this.crawlApp.crawlPage({
+        targets: url,
+        ...options
+      });
+
+      console.error(`🔍 Raw crawl result structure:`, {
+        hasResult: !!result,
+        isArray: Array.isArray(result),
+        resultKeys: result ? Object.keys(result) : [],
+        firstItemKeys: result && result[0] ? Object.keys(result[0]) : []
+      });
+
+      // Handle x-crawl result format (similar to working CourseCrafter implementation)
+      let crawlData = null;
+      
+      if (Array.isArray(result) && result.length > 0) {
+        // x-crawl returns array of results for multiple targets
+        const firstResult = result[0];
+        if (firstResult && firstResult.data) {
+          crawlData = firstResult.data;
+        }
+      } else if (result && result.data) {
+        // Single result format
+        crawlData = result.data;
+      }
+
+      if (crawlData) {
+        console.error(`✅ Successfully crawled: ${url}`);
+        
+        // Debug: Log the actual data structure
+        console.error(`🔍 Data object keys:`, Object.keys(crawlData));
+        console.error(`🔍 Data object type:`, typeof crawlData);
+        if (typeof crawlData === 'object') {
+          console.error(`🔍 First few keys and their types:`);
+          Object.keys(crawlData).slice(0, 10).forEach(key => {
+            const value = crawlData[key];
+            console.error(`  ${key}: ${typeof value} (length: ${typeof value === 'string' ? value.length : 'N/A'})`);
+          });
+        }
+        
+        // Extract content using the working approach
+        const content = this.extractContent(crawlData);
+        
+        return {
+          success: true,
+          content: content,
+          url: url,
+          title: this.extractTitle(crawlData),
+          timestamp: new Date().toISOString()
+        };
+      } else {
+        console.error(`❌ No valid data in crawl result for ${url}`);
+        throw new Error('No data returned from crawl');
+      }
+      
+    } catch (error) {
+      console.error(`❌ Failed to crawl ${url}:`, error);
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error',
+        url: url,
+        timestamp: new Date().toISOString()
+      };
+    }
+  }
+
+  /**
+   * Extract content using proven CourseCrafter approach
+   */
+  private extractContent(data: any): string {
+    if (!data) return '';
+    
+    console.error('🔍 [EXTRACT] Data object keys:', Object.keys(data));
+    console.error('🔍 [EXTRACT] Data structure:', {
+      hasPage: !!data.page,
+      hasResponse: !!data.response,
+      hasBrowser: !!data.browser,
+      hasHtml: !!data.html,
+      hasText: !!data.text,
+      hasContent: !!data.content
+    });
+    
+    // Handle different x-crawl response formats (exactly like CourseCrafter)
+    if (typeof data === 'string') {
+      console.error('📝 [EXTRACT] Using string data directly');
+      return data;
+    }
+    
+    // If data has a text property
+    if (data.text && typeof data.text === 'string') {
+      console.error('📝 [EXTRACT] Using data.text');
+      return data.text;
+    }
+    
+    // If data has content property
+    if (data.content && typeof data.content === 'string') {
+      console.error('📝 [EXTRACT] Using data.content');
+      return data.content;
+    }
+    
+    // If data has html property, extract text from it
+    if (data.html && typeof data.html === 'string') {
+      console.error('📝 [EXTRACT] Using data.html and converting to text');
+      // Basic HTML to text conversion (exactly like CourseCrafter)
+      return data.html
+        .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '') // Remove scripts
+        .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '') // Remove styles
+        .replace(/<[^>]*>/g, ' ') // Remove HTML tags
+        .replace(/\s+/g, ' ') // Normalize whitespace
+        .trim();
+    }
+    
+    // If data has a body or main content area
+    if (data.body) {
+      console.error('📝 [EXTRACT] Recursively extracting from data.body');
+      return this.extractContent(data.body);
+    }
+    
+    // If it's an object, try to extract meaningful text
+    if (typeof data === 'object') {
+      console.error('📝 [EXTRACT] Trying common content properties...');
+      // Look for common content properties (exactly like CourseCrafter)
+      const contentProps = ['innerText', 'textContent', 'text', 'content', 'body'];
+      for (const prop of contentProps) {
+        if (data[prop] && typeof data[prop] === 'string') {
+          console.error(`📝 [EXTRACT] Using data.${prop}`);
+          return data[prop];
+        }
+      }
+      
+      // Special handling for x-crawl page responses
+      // Some x-crawl versions might not return direct HTML but nested structures
+      if (data.page && data.page.html) {
+        console.error('📝 [EXTRACT] Using data.page.html');
+        return this.extractContent(data.page.html);
+      }
+      
+      if (data.response && data.response.data) {
+        console.error('📝 [EXTRACT] Using data.response.data');
+        return this.extractContent(data.response.data);
+      }
+      
+      // If no direct content found, stringify the object but with better formatting
+      console.error('⚠️ [EXTRACT] No content found, stringifying object (might be debugging data)');
+      try {
+        const stringified = JSON.stringify(data, null, 2);
+        // If it's a very short object (likely just debugging info), return empty
+        if (stringified.length < 200) {
+          console.error('⚠️ [EXTRACT] Object too small, likely debugging info - returning empty');
+          return '';
+        }
+        return stringified;
+      } catch {
+        return String(data);
+      }
+    }
+    
+    // Fallback to string conversion
+    console.error('⚠️ [EXTRACT] Fallback to string conversion');
+    return String(data);
+  }
+
+  /**
+   * Extract title from crawl data
+   */
+  private extractTitle(data: any): string | undefined {
+    if (!data) return undefined;
+    
+    if (data.title) return data.title;
+    if (data.pageTitle) return data.pageTitle;
+    
+    // Try to extract from HTML
+    if (data.html) {
+      const $ = load(data.html);
+      const title = $('title').text().trim() || $('h1').first().text().trim();
+      if (title) return title;
+    }
+    
+    return undefined;
+  }
+
+  /**
    * Crawl a single page for preview purposes
    */
   async crawlSinglePage(url: string): Promise<CrawlResult> {
@@ -471,28 +713,25 @@ export class CrawlerService {
     console.error(`🔍 [PREVIEW] Crawling single page: ${url}`);
     
     try {
-      const result = await this.crawlApp.crawlPage({
-        targets: url,
+      // Use the simple crawlPage method
+      const result = await this.crawlPage(url, {
         maxRetry: 2,
         timeout: 15000
       });
       
-      if (result && result[0]?.isSuccess && result[0]?.data) {
-        const { title, content, html } = this.extractDocumentationData(result[0].data, url);
-        
-        console.error(`✅ [PREVIEW] Successfully crawled: ${title}`);
+      if (result.success && result.content) {
+        console.error(`✅ [PREVIEW] Successfully crawled: ${result.title || 'Untitled'}`);
         
         return {
           url,
           success: true,
-          title,
-          content,
-          markdown: content,
+          title: result.title,
+          content: result.content,
+          markdown: result.content,
           timestamp: new Date().toISOString()
         };
       } else {
-        const errorMsg = result[0]?.message || 'Failed to crawl page';
-        throw new Error(errorMsg);
+        throw new Error(result.error || 'Failed to crawl page');
       }
       
     } catch (error) {
