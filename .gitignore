@@ -1,9 +1,10 @@
-# Coders in Flow
-.codersinflow
 .vscode
-node_modules
 .env
 .DS_Store
 
-# Build artifacts and temp files
-nul
+development/
+dist/
+node-modules/
+output/
+test-files/
+tests/
