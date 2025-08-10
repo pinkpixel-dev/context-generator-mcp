@@ -163,13 +163,15 @@ export class CrawlerService {
                 },
             });
             console.error(`📊 [X-CRAWL] Crawl completed. Processing ${crawlResults.length} results...`);
-            const results = crawlResults.map((result, index) => {
+            const results = [];
+            for (let index = 0; index < crawlResults.length; index++) {
+                const result = crawlResults[index];
                 const url = urls[index];
                 if (result.isSuccess && result.data) {
-                    const { title, content, html } = this.extractDocumentationData(result.data, url);
+                    const { title, content, html } = await this.extractDocumentationData(result.data, url);
                     const contentLength = content.length;
                     console.error(`✅ [X-CRAWL] Success: ${title} (${contentLength} chars)`);
-                    return {
+                    results.push({
                         url,
                         success: true,
                         title,
@@ -177,21 +179,21 @@ export class CrawlerService {
                         markdown: content, // Will be processed by content extractor
                         timestamp: new Date().toISOString(),
                         error: undefined,
-                    };
+                    });
                 }
                 else {
                     const errorMsg = result.data?.message || result.message || 'Unknown crawl error';
                     console.error(`❌ [X-CRAWL] Failed: ${url} - ${errorMsg}`);
-                    return {
+                    results.push({
                         url,
                         success: false,
                         title: undefined,
                         content: undefined,
                         timestamp: new Date().toISOString(),
                         error: errorMsg,
-                    };
+                    });
                 }
-            });
+            }
             const successCount = results.filter(r => r.success).length;
             const failCount = results.length - successCount;
             console.error(`🎯 [X-CRAWL] Results: ${successCount} successful, ${failCount} failed`);
@@ -205,23 +207,15 @@ export class CrawlerService {
     /**
      * Extract documentation-specific data from crawl results
      */
-    extractDocumentationData(data, url) {
+    async extractDocumentationData(data, url) {
         if (!data)
             return { title: 'Unknown', content: '', html: '' };
         let html = '';
         let title = 'Unknown Page';
-        // Handle different x-crawl response formats (based on your proven patterns)
-        if (typeof data === 'string') {
-            html = data;
-        }
-        else if (data.html && typeof data.html === 'string') {
-            html = data.html;
-        }
-        else if (data.content && typeof data.content === 'string') {
-            html = data.content;
-        }
-        else if (data.text && typeof data.text === 'string') {
-            html = data.text;
+        // Use the enhanced extraction method to get content from x-crawl structure
+        const extractedContent = await this.extractContent(data);
+        if (extractedContent) {
+            html = extractedContent;
         }
         // Use cheerio for better HTML parsing (documentation-specific)
         const $ = load(html);
@@ -488,7 +482,7 @@ export class CrawlerService {
                     });
                 }
                 // Extract content using the working approach
-                const content = this.extractContent(crawlData);
+                const content = await this.extractContent(crawlData);
                 return {
                     success: true,
                     content: content,
@@ -515,7 +509,7 @@ export class CrawlerService {
     /**
      * Extract content using proven CourseCrafter approach
      */
-    extractContent(data) {
+    async extractContent(data) {
         if (!data)
             return '';
         console.error('🔍 [EXTRACT] Data object keys:', Object.keys(data));
@@ -570,14 +564,70 @@ export class CrawlerService {
                 }
             }
             // Special handling for x-crawl page responses
-            // Some x-crawl versions might not return direct HTML but nested structures
-            if (data.page && data.page.html) {
-                console.error('📝 [EXTRACT] Using data.page.html');
-                return this.extractContent(data.page.html);
+            // x-crawl returns structure with page, response, browser objects
+            if (data.page) {
+                console.error('📝 [EXTRACT] Found data.page object, exploring...');
+                // Log page object keys for debugging
+                if (typeof data.page === 'object') {
+                    console.error('📝 [EXTRACT] Page object keys:', Object.keys(data.page));
+                    // Common x-crawl page properties to check
+                    const pageProps = ['html', 'content', 'text', '$', 'evaluate', 'title'];
+                    for (const prop of pageProps) {
+                        if (data.page[prop]) {
+                            console.error(`📝 [EXTRACT] Page has ${prop}: ${typeof data.page[prop]}`);
+                            if (typeof data.page[prop] === 'string') {
+                                console.error(`📝 [EXTRACT] Using data.page.${prop}`);
+                                return data.page[prop];
+                            }
+                        }
+                    }
+                    // Try to call page.html() if it's a function (some x-crawl versions)
+                    if (typeof data.page.html === 'function') {
+                        try {
+                            console.error('📝 [EXTRACT] Calling data.page.html() method');
+                            const htmlContent = await data.page.html();
+                            if (typeof htmlContent === 'string') {
+                                return htmlContent;
+                            }
+                        }
+                        catch (error) {
+                            console.error('⚠️ [EXTRACT] Failed to call page.html():', error);
+                        }
+                    }
+                    // Try to call page.content() if it's a function (some x-crawl versions)
+                    if (typeof data.page.content === 'function') {
+                        try {
+                            console.error('📝 [EXTRACT] Calling data.page.content() method');
+                            const textContent = await data.page.content();
+                            if (typeof textContent === 'string') {
+                                return textContent;
+                            }
+                        }
+                        catch (error) {
+                            console.error('⚠️ [EXTRACT] Failed to call page.content():', error);
+                        }
+                    }
+                    // Recursively extract from page object
+                    const pageContent = await this.extractContent(data.page);
+                    if (pageContent) {
+                        return pageContent;
+                    }
+                }
             }
-            if (data.response && data.response.data) {
-                console.error('📝 [EXTRACT] Using data.response.data');
-                return this.extractContent(data.response.data);
+            if (data.response) {
+                console.error('📝 [EXTRACT] Found data.response object, exploring...');
+                if (typeof data.response === 'object' && data.response.data) {
+                    console.error('📝 [EXTRACT] Using data.response.data');
+                    return this.extractContent(data.response.data);
+                }
+                // Check for other response properties
+                const responseProps = ['html', 'content', 'text', 'body'];
+                for (const prop of responseProps) {
+                    if (data.response[prop] && typeof data.response[prop] === 'string') {
+                        console.error(`📝 [EXTRACT] Using data.response.${prop}`);
+                        return data.response[prop];
+                    }
+                }
             }
             // If no direct content found, stringify the object but with better formatting
             console.error('⚠️ [EXTRACT] No content found, stringifying object (might be debugging data)');

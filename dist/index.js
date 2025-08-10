@@ -186,6 +186,15 @@ class ContextGeneratorServer {
         try {
             console.error(`🚀 [SCRAPE-DOC] Starting documentation scraping for: ${args.url}`);
             console.error(`📋 [SCRAPE-DOC] Options: ${JSON.stringify(args.options || {}, null, 2)}`);
+            // Initialize crawler service if not already done
+            console.error(`🔧 [SCRAPE-DOC] Ensuring crawler service is initialized...`);
+            await this.crawler.initialize();
+            // Check crawler health
+            const isHealthy = await this.crawler.healthCheck();
+            console.error(`💚 [SCRAPE-DOC] Crawler health check: ${isHealthy ? 'PASS' : 'FAIL'}`);
+            if (!isHealthy) {
+                throw new Error('Crawler service failed health check - x-crawl may not be properly initialized');
+            }
             const startTime = Date.now();
             const options = {
                 maxPages: 50,
@@ -305,6 +314,15 @@ class ContextGeneratorServer {
     async handlePreviewPage(args) {
         try {
             console.error(`🔍 [PREVIEW] Starting page preview for: ${args.url}`);
+            // Initialize crawler service if not already done
+            console.error(`🔧 [PREVIEW] Ensuring crawler service is initialized...`);
+            await this.crawler.initialize();
+            // Check crawler health
+            const isHealthy = await this.crawler.healthCheck();
+            console.error(`💚 [PREVIEW] Crawler health check: ${isHealthy ? 'PASS' : 'FAIL'}`);
+            if (!isHealthy) {
+                throw new Error('Crawler service failed health check - x-crawl may not be properly initialized');
+            }
             const startTime = Date.now();
             // Step 1: Detect platform
             const platform = await this.detector.detectPlatform(args.url);

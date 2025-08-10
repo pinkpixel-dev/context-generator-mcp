@@ -1,0 +1,42 @@
+# Documentation
+
+Source: docs.astro.build
+Generated: 2025-08-10T02:33:36.724Z
+Format: full
+Sections: 3
+
+---
+
+## Table of Contents
+
+- [Getting Started with Astro](#getting-started-with-astro)
+- [Astro Components](#astro-components)
+- [Project Structure](#project-structure)
+
+---
+
+## Getting Started with Astro
+
+*Source: [https://docs.astro.build/en/getting-started](https://docs.astro.build/en/getting-started)*
+
+Astro is a modern web framework for building fast, content-focused websites. It allows you to use your favorite UI components and frameworks while shipping minimal JavaScript to the browser. This guide will help you get started with Astro quickly and efficiently.
+
+
+## Astro Components
+
+*Source: [https://docs.astro.build/en/core-concepts/astro-components](https://docs.astro.build/en/core-concepts/astro-components)*
+
+Astro components are the building blocks of your Astro application. They use a special .astro file format that combines HTML-like syntax with JavaScript. Components can include frontmatter for server-side logic and a template section for markup. They support props, slots, and can import other components or frameworks.
+
+
+## Project Structure
+
+*Source: [https://docs.astro.build/en/core-concepts/project-structure](https://docs.astro.build/en/core-concepts/project-structure)*
+
+Understanding Astro's project structure is crucial for building maintainable applications. The src/ directory contains your source code, public/ contains static assets, and astro.config.mjs contains your configuration. Components can be written in multiple frameworks and are automatically optimized.
+
+
+---
+
+*This documentation was generated automatically from web content.*
+*Source URLs are preserved for reference and verification.*
