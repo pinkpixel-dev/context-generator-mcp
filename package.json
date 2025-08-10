@@ -8,7 +8,7 @@
     "build": "tsc",
     "dev": "tsx --watch src/index.ts",
     "start": "node dist/index.js",
-    "clean": "rmdir /s /q dist 2>nul || echo dist cleaned",
+    "clean": "rm -rf dist || echo dist cleaned",
     "prebuild": "npm run clean",
     "lint": "eslint src/**/*.ts",
     "test": "echo \"No tests yet\" && exit 0"

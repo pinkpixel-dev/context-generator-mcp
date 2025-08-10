@@ -30,36 +30,36 @@ export class ContentExtractorService {
    * Extract content from HTML with platform-specific optimizations
    */
   async extractContent(
-    html: string, 
-    url: string, 
-    platform?: DocumentationPlatform
+    html: string,
+    url: string,
+    platform?: DocumentationPlatform,
   ): Promise<ExtractedContent> {
     console.error(`🔍 [CONTENT-EXTRACT] Processing: ${url}`);
-    
+
     const $ = load(html);
-    
+
     // Step 1: Clean up HTML (remove unwanted elements)
     this.cleanupHtml($);
-    
+
     // Step 2: Extract title using multiple strategies
     const title = this.extractTitle($, platform);
-    
+
     // Step 3: Extract main content using platform-specific selectors
     const contentHtml = this.extractMainContent($, platform);
-    
+
     // Step 4: Convert to clean markdown
     const markdown = this.convertToMarkdown(contentHtml);
-    
+
     // Step 5: Extract additional metadata
     const links = this.extractLinks($, url);
     const headings = this.extractHeadings($);
     const codeBlocks = this.extractCodeBlocks(markdown);
-    
+
     // Step 6: Generate clean text content
     const content = this.generateCleanTextContent(markdown);
-    
+
     console.error(`✅ [CONTENT-EXTRACT] Extracted: "${title}" (${content.length} chars, ${headings.length} headings, ${codeBlocks.length} code blocks)`);
-    
+
     return {
       title,
       content,
@@ -83,13 +83,13 @@ export class ContentExtractorService {
         const language = codeElement?.className.match(/language-(\w+)/)?.[1] || '';
         const code = codeElement?.textContent || content;
         return `\n\n\`\`\`${language}\n${code}\n\`\`\`\n\n`;
-      }
+      },
     });
 
     // Preserve inline code
     this.turndownService.addRule('inlineCode', {
       filter: ['code'],
-      replacement: (content) => `\`${content}\``
+      replacement: (content) => `\`${content}\``,
     });
 
     // Handle tables better
@@ -104,7 +104,7 @@ export class ContentExtractorService {
           }).get();
           return `| ${cells.join(' | ')} |`;
         }).get();
-        
+
         if (rows.length > 0) {
           // Add header separator if first row contains th elements
           const hasHeader = $('tr:first th').length > 0;
@@ -115,7 +115,7 @@ export class ContentExtractorService {
           return `\n\n${rows.join('\n')}\n\n`;
         }
         return content;
-      }
+      },
     });
 
     // Handle blockquotes
@@ -124,7 +124,7 @@ export class ContentExtractorService {
       replacement: (content) => {
         const lines = content.trim().split('\n');
         return `\n\n${lines.map(line => `> ${line}`).join('\n')}\n\n`;
-      }
+      },
     });
 
     // Handle alerts/callouts (common in documentation)
@@ -132,19 +132,19 @@ export class ContentExtractorService {
       filter: (node) => {
         const element = node as any;
         const classList = element.classList || [];
-        return ['alert', 'callout', 'admonition', 'note', 'warning', 'tip'].some(cls => 
-          Array.from(classList).some((c: any) => c.includes && c.includes(cls))
+        return ['alert', 'callout', 'admonition', 'note', 'warning', 'tip'].some(cls =>
+          Array.from(classList).some((c: any) => c.includes && c.includes(cls)),
         );
       },
       replacement: (content, node) => {
         const element = node as any;
         const classList = Array.from(element.classList || []);
-        const alertType = classList.find((cls: any) => 
-          ['alert', 'callout', 'admonition', 'note', 'warning', 'tip', 'info'].some(type => cls && cls.includes && cls.includes(type))
+        const alertType = classList.find((cls: any) =>
+          ['alert', 'callout', 'admonition', 'note', 'warning', 'tip', 'info'].some(type => cls && cls.includes && cls.includes(type)),
         ) || 'note';
-        
+
         return `\n\n> **${(alertType as string).toUpperCase()}**: ${content.trim()}\n\n`;
-      }
+      },
     });
   }
   /**
@@ -153,36 +153,36 @@ export class ContentExtractorService {
   private cleanupHtml($: any): void {
     // Remove scripts, styles, and other non-content elements
     $('script, style, noscript').remove();
-    
+
     // Remove common navigation elements
     $('nav, header, footer').remove();
     $('.navigation, .nav, .navbar, .header, .footer').remove();
     $('.menu, .sidebar, .toc, .breadcrumb').remove();
     $('[role="navigation"], [role="banner"], [role="complementary"]').remove();
-    
+
     // Remove ads and tracking elements
     $('.advertisement, .ads, .ad, .sponsored').remove();
     $('.tracking, .analytics, .social-share').remove();
     $('[class*="ad-"], [class*="ads-"], [id*="ad-"], [id*="ads-"]').remove();
-    
+
     // Remove edit/contribution links common in documentation
     $('.edit-page, .edit-link, .edit-on-github').remove();
     $('.contribute, .feedback, .improve-page').remove();
     $('a[href*="edit"], a[href*="github.com"][href*="edit"]').remove();
-    
+
     // Remove "back to top" and similar navigation aids
     $('.back-to-top, .scroll-to-top, .goto-top').remove();
-    
+
     // Remove version/branch selectors common in docs
     $('.version-selector, .branch-selector').remove();
-    
+
     // Remove search boxes and filters
     $('.search-box, .filter, .search-input').remove();
     $('input[type="search"], input[placeholder*="Search"]').remove();
-    
+
     // Remove empty elements that might cause issues
     $(':empty').not('br, hr, img, input, textarea, area, base, col, embed, link, meta, param, source, track, wbr').remove();
-    
+
     console.error('🧹 [CLEANUP] Removed navigation, ads, and unwanted elements');
   }
 
@@ -192,7 +192,7 @@ export class ContentExtractorService {
   private extractTitle($: any, platform?: DocumentationPlatform): string {
     // Platform-specific title selectors
     const platformSelectors = platform ? [platform.selectors.title] : [];
-    
+
     // Common title selectors (in order of preference)
     const titleSelectors = [
       ...platformSelectors,
@@ -205,9 +205,9 @@ export class ContentExtractorService {
       'title',
       '[class*="title"]:first',
       '.content h1:first',
-      'main h1:first'
+      'main h1:first',
     ];
-    
+
     for (const selector of titleSelectors) {
       const element = $(selector).first();
       if (element.length > 0) {
@@ -218,7 +218,7 @@ export class ContentExtractorService {
         }
       }
     }
-    
+
     // Fallback: try to extract from URL
     const urlTitle = this.extractTitleFromUrl($('base').attr('href') || '');
     return urlTitle || 'Untitled Page';
@@ -229,7 +229,7 @@ export class ContentExtractorService {
   private extractMainContent($: any, platform?: DocumentationPlatform): string {
     // Platform-specific content selectors
     const platformSelectors = platform ? [platform.selectors.content] : [];
-    
+
     // Common content selectors (in order of preference)
     const contentSelectors = [
       ...platformSelectors,
@@ -246,9 +246,9 @@ export class ContentExtractorService {
       '.wiki-content',
       '#content',
       '.container .row .col',
-      'body'
+      'body',
     ];
-    
+
     for (const selector of contentSelectors) {
       const element = $(selector).first();
       if (element.length > 0) {
@@ -259,11 +259,11 @@ export class ContentExtractorService {
         }
       }
     }
-    
+
     // Fallback: try to find the largest text container
     let largestElement = null;
     let largestSize = 0;
-    
+
     $('div, article, section, main').each((_, elem) => {
       const text = $(elem).text().trim();
       if (text.length > largestSize && text.length > 200) {
@@ -271,12 +271,12 @@ export class ContentExtractorService {
         largestElement = elem;
       }
     });
-    
+
     if (largestElement) {
       console.error(`🎯 [CONTENT] Extracted largest container (${largestSize} chars)`);
       return $(largestElement).html() || '';
     }
-    
+
     console.error('⚠️ [CONTENT] No suitable content container found, using body');
     return $('body').html() || '';
   }
@@ -287,13 +287,13 @@ export class ContentExtractorService {
     try {
       // Clean up HTML before conversion
       const $ = load(html);
-      
+
       // Remove any remaining unwanted elements
       $('.sidebar, .navigation, .menu, .toc').remove();
-      
+
       const cleanHtml = $.html();
       const markdown = this.turndownService.turndown(cleanHtml);
-      
+
       // Post-process markdown to clean up formatting
       return this.cleanMarkdown(markdown);
     } catch (error) {
@@ -326,7 +326,7 @@ export class ContentExtractorService {
    */
   private extractLinks($: any, baseUrl: string): string[] {
     const links: string[] = [];
-    
+
     $('a[href]').each((_, elem) => {
       const href = $(elem).attr('href');
       if (href && !href.startsWith('#') && !href.startsWith('mailto:')) {
@@ -340,7 +340,7 @@ export class ContentExtractorService {
         }
       }
     });
-    
+
     console.error(`🔗 [LINKS] Extracted ${links.length} unique links`);
     return links;
   }
@@ -350,18 +350,18 @@ export class ContentExtractorService {
    */
   private extractHeadings($: any): Array<{ level: number; text: string; id?: string }> {
     const headings: Array<{ level: number; text: string; id?: string }> = [];
-    
+
     $('h1, h2, h3, h4, h5, h6').each((_, elem) => {
       const tagName = elem.tagName.toLowerCase();
       const level = parseInt(tagName.charAt(1));
       const text = $(elem).text().trim();
       const id = $(elem).attr('id');
-      
+
       if (text && text.length > 0) {
         headings.push({ level, text, id });
       }
     });
-    
+
     console.error(`📑 [HEADINGS] Extracted ${headings.length} headings`);
     return headings;
   }
@@ -371,7 +371,7 @@ export class ContentExtractorService {
   private extractCodeBlocks(markdown: string): Array<{ language: string; code: string }> {
     const codeBlocks: Array<{ language: string; code: string }> = [];
     const codeBlockRegex = /```(\w*)\n([\s\S]*?)\n```/g;
-    
+
     let match;
     while ((match = codeBlockRegex.exec(markdown)) !== null) {
       const language = match[1] || 'text';
@@ -380,7 +380,7 @@ export class ContentExtractorService {
         codeBlocks.push({ language, code });
       }
     }
-    
+
     console.error(`💻 [CODE] Extracted ${codeBlocks.length} code blocks`);
     return codeBlocks;
   }
@@ -415,11 +415,11 @@ export class ContentExtractorService {
     try {
       const parsedUrl = new URL(url);
       const pathname = parsedUrl.pathname;
-      
+
       // Extract the last meaningful segment
       const segments = pathname.split('/').filter(s => s.length > 0);
       const lastSegment = segments[segments.length - 1];
-      
+
       if (lastSegment && lastSegment !== 'index' && lastSegment !== 'index.html') {
         // Convert kebab-case and snake_case to title case
         return lastSegment
@@ -427,7 +427,7 @@ export class ContentExtractorService {
           .replace(/\.html?$/, '')
           .replace(/\b\w/g, l => l.toUpperCase());
       }
-      
+
       // Use the second-to-last segment if last is generic
       if (segments.length > 1) {
         const secondLast = segments[segments.length - 2];
@@ -435,7 +435,7 @@ export class ContentExtractorService {
           .replace(/[-_]/g, ' ')
           .replace(/\b\w/g, l => l.toUpperCase());
       }
-      
+
       return parsedUrl.hostname.replace(/^www\./, '');
     } catch {
       return 'Unknown Page';
@@ -451,29 +451,29 @@ export class ContentExtractorService {
       console.error('❌ [VALIDATION] Content too short');
       return false;
     }
-    
+
     if (!content.title || content.title === 'Untitled Page') {
       console.error('⚠️ [VALIDATION] No meaningful title found');
     }
-    
+
     // Check for common spam indicators
     const spamIndicators = [
       /error\s*404/i,
       /page\s*not\s*found/i,
       /access\s*denied/i,
       /forbidden/i,
-      /under\s*construction/i
+      /under\s*construction/i,
     ];
-    
-    const hasSpam = spamIndicators.some(pattern => 
-      pattern.test(content.content) || pattern.test(content.title)
+
+    const hasSpam = spamIndicators.some(pattern =>
+      pattern.test(content.content) || pattern.test(content.title),
     );
-    
+
     if (hasSpam) {
       console.error('❌ [VALIDATION] Content appears to be error page or spam');
       return false;
     }
-    
+
     console.error('✅ [VALIDATION] Content appears valid');
     return true;
   }
