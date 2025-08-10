@@ -42,7 +42,7 @@ export function isLikelyDocumentationUrl(url) {
     const docKeywords = [
         'docs', 'documentation', 'guide', 'tutorial', 'help',
         'manual', 'wiki', 'getting-started', 'quickstart',
-        'setup', 'install', 'api', 'reference', 'examples'
+        'setup', 'install', 'api', 'reference', 'examples',
     ];
     const lowercaseUrl = url.toLowerCase();
     return docKeywords.some(keyword => lowercaseUrl.includes(keyword));

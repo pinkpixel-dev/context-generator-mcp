@@ -19,7 +19,7 @@ export class CrawlerService {
             // Create crawler application with configuration (based on your proven patterns)
             this.crawlApp = createCrawl({
                 maxRetry: 3,
-                intervalTime: 2000
+                intervalTime: 2000,
             });
             // Initialize OpenAI crawler if API key is available
             if (process.env.OPENAI_API_KEY) {
@@ -29,8 +29,8 @@ export class CrawlerService {
                             apiKey: process.env.OPENAI_API_KEY,
                         },
                         defaultModel: {
-                            chatModel: process.env.OPENAI_MODEL || 'gpt-3.5-turbo'
-                        }
+                            chatModel: process.env.OPENAI_MODEL || 'gpt-3.5-turbo',
+                        },
                     });
                     console.error('✅ OpenAI crawler initialized with API key');
                 }
@@ -118,7 +118,7 @@ export class CrawlerService {
             // Step 1: Discover all documentation URLs
             const urlsToCrawl = await this.discoverDocumentationUrls(url, options);
             if (urlsToCrawl.length === 0) {
-                console.error(`⚠️ [DOC-CRAWL] No URLs discovered via sitemap/navigation, falling back to base URL`);
+                console.error('⚠️ [DOC-CRAWL] No URLs discovered via sitemap/navigation, falling back to base URL');
                 // Fallback: just crawl the base URL if discovery fails
                 const baseResult = await this.crawlSinglePage(url);
                 if (baseResult.success) {
@@ -130,7 +130,7 @@ export class CrawlerService {
             }
             // Step 2: Crawl all discovered URLs using your proven x-crawl patterns
             const crawlResults = await this.crawlMultiplePages(urlsToCrawl, delayMs);
-            console.error(`🎉 [DOC-CRAWL] Documentation crawl completed successfully!`);
+            console.error('🎉 [DOC-CRAWL] Documentation crawl completed successfully!');
             console.error(`📊 [DOC-CRAWL] Results: ${crawlResults.length} pages processed`);
             return crawlResults;
         }
@@ -159,8 +159,8 @@ export class CrawlerService {
                     mobile: false,
                     platform: 'win32',
                     acceptLanguage: 'en-US,en;q=0.9',
-                    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 context-generator/1.0'
-                }
+                    userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36 context-generator/1.0',
+                },
             });
             console.error(`📊 [X-CRAWL] Crawl completed. Processing ${crawlResults.length} results...`);
             const results = crawlResults.map((result, index) => {
@@ -176,7 +176,7 @@ export class CrawlerService {
                         content,
                         markdown: content, // Will be processed by content extractor
                         timestamp: new Date().toISOString(),
-                        error: undefined
+                        error: undefined,
                     };
                 }
                 else {
@@ -188,7 +188,7 @@ export class CrawlerService {
                         title: undefined,
                         content: undefined,
                         timestamp: new Date().toISOString(),
-                        error: errorMsg
+                        error: errorMsg,
                     };
                 }
             });
@@ -257,7 +257,7 @@ export class CrawlerService {
             '.markdown-body',
             'article',
             '.article',
-            '.post-content'
+            '.post-content',
         ];
         for (const selector of contentSelectors) {
             const element = $(selector);
@@ -287,7 +287,7 @@ export class CrawlerService {
                 `${baseUrlObj.origin}/sitemap.xml`,
                 `${baseUrlObj.origin}/sitemap_index.xml`,
                 `${baseUrl}/sitemap.xml`,
-                `${baseUrl.replace(/\/$/, '')}/sitemap.xml`
+                `${baseUrl.replace(/\/$/, '')}/sitemap.xml`,
             ];
             for (const sitemapUrl of sitemapUrls) {
                 try {
@@ -295,7 +295,7 @@ export class CrawlerService {
                     const result = await this.crawlApp.crawlPage({
                         targets: sitemapUrl,
                         maxRetry: 1,
-                        timeout: 10000
+                        timeout: 10000,
                     });
                     if (result && result[0]?.isSuccess && result[0]?.data) {
                         const $ = load(result[0].data.html || result[0].data.content || result[0].data);
@@ -317,7 +317,7 @@ export class CrawlerService {
             }
         }
         catch (error) {
-            console.error(`❌ [SITEMAP] Sitemap discovery failed:`, error);
+            console.error('❌ [SITEMAP] Sitemap discovery failed:', error);
         }
         return urls;
     }
@@ -341,7 +341,7 @@ export class CrawlerService {
                     const result = await this.crawlApp.crawlPage({
                         targets: url,
                         maxRetry: 1,
-                        timeout: 15000
+                        timeout: 15000,
                     });
                     if (result && result[0]?.isSuccess && result[0]?.data) {
                         const links = this.extractDocumentationLinks(result[0].data, baseUrl);
@@ -385,7 +385,7 @@ export class CrawlerService {
                 '.content a',
                 'article a',
                 '[class*="nav"] a',
-                '[role="navigation"] a'
+                '[role="navigation"] a',
             ];
             linkSelectors.forEach(selector => {
                 $(selector).each((_, element) => {
@@ -426,7 +426,7 @@ export class CrawlerService {
                 /\/(api|login|register|auth|admin)/i,
                 /#/,
                 /mailto:/,
-                /tel:/
+                /tel:/,
             ];
             if (skipPatterns.some(pattern => pattern.test(url))) {
                 return false;
@@ -435,7 +435,7 @@ export class CrawlerService {
             const docPatterns = [
                 /\/(docs|documentation|guide|tutorial|help|manual|wiki)/i,
                 /\/(getting-started|quickstart|setup|install)/i,
-                /\/(api|reference|examples)/i
+                /\/(api|reference|examples)/i,
             ];
             return docPatterns.some(pattern => pattern.test(url)) || url.startsWith(baseUrl);
         }
@@ -454,13 +454,13 @@ export class CrawlerService {
             console.error(`🕷️ Crawling page: ${url}`);
             const result = await this.crawlApp.crawlPage({
                 targets: url,
-                ...options
+                ...options,
             });
-            console.error(`🔍 Raw crawl result structure:`, {
+            console.error('🔍 Raw crawl result structure:', {
                 hasResult: !!result,
                 isArray: Array.isArray(result),
                 resultKeys: result ? Object.keys(result) : [],
-                firstItemKeys: result && result[0] ? Object.keys(result[0]) : []
+                firstItemKeys: result && result[0] ? Object.keys(result[0]) : [],
             });
             // Handle x-crawl result format (similar to working CourseCrafter implementation)
             let crawlData = null;
@@ -478,10 +478,10 @@ export class CrawlerService {
             if (crawlData) {
                 console.error(`✅ Successfully crawled: ${url}`);
                 // Debug: Log the actual data structure
-                console.error(`🔍 Data object keys:`, Object.keys(crawlData));
-                console.error(`🔍 Data object type:`, typeof crawlData);
+                console.error('🔍 Data object keys:', Object.keys(crawlData));
+                console.error('🔍 Data object type:', typeof crawlData);
                 if (typeof crawlData === 'object') {
-                    console.error(`🔍 First few keys and their types:`);
+                    console.error('🔍 First few keys and their types:');
                     Object.keys(crawlData).slice(0, 10).forEach(key => {
                         const value = crawlData[key];
                         console.error(`  ${key}: ${typeof value} (length: ${typeof value === 'string' ? value.length : 'N/A'})`);
@@ -494,7 +494,7 @@ export class CrawlerService {
                     content: content,
                     url: url,
                     title: this.extractTitle(crawlData),
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
                 };
             }
             else {
@@ -508,7 +508,7 @@ export class CrawlerService {
                 success: false,
                 error: error instanceof Error ? error.message : 'Unknown error',
                 url: url,
-                timestamp: new Date().toISOString()
+                timestamp: new Date().toISOString(),
             };
         }
     }
@@ -525,7 +525,7 @@ export class CrawlerService {
             hasBrowser: !!data.browser,
             hasHtml: !!data.html,
             hasText: !!data.text,
-            hasContent: !!data.content
+            hasContent: !!data.content,
         });
         // Handle different x-crawl response formats (exactly like CourseCrafter)
         if (typeof data === 'string') {
@@ -627,7 +627,7 @@ export class CrawlerService {
             // Use the simple crawlPage method
             const result = await this.crawlPage(url, {
                 maxRetry: 2,
-                timeout: 15000
+                timeout: 15000,
             });
             if (result.success && result.content) {
                 console.error(`✅ [PREVIEW] Successfully crawled: ${result.title || 'Untitled'}`);
@@ -637,7 +637,7 @@ export class CrawlerService {
                     title: result.title,
                     content: result.content,
                     markdown: result.content,
-                    timestamp: new Date().toISOString()
+                    timestamp: new Date().toISOString(),
                 };
             }
             else {
@@ -650,7 +650,7 @@ export class CrawlerService {
                 url,
                 success: false,
                 timestamp: new Date().toISOString(),
-                error: error instanceof Error ? error.message : 'Unknown error'
+                error: error instanceof Error ? error.message : 'Unknown error',
             };
         }
     }

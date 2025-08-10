@@ -34,7 +34,7 @@ export class ContextFormatterService {
             totalLength: content.length,
             format: options.format,
         };
-        console.error(`🎉 [LLMSTXT-FORMAT] Formatting completed successfully!`);
+        console.error('🎉 [LLMSTXT-FORMAT] Formatting completed successfully!');
         console.error(`📊 [LLMSTXT-FORMAT] Generated: ${content.length} chars, ${sections.length} sections`);
         return {
             content,
@@ -480,7 +480,7 @@ export class ContextFormatterService {
         }
         return {
             valid: issues.length === 0,
-            issues
+            issues,
         };
     }
     /**
@@ -502,7 +502,7 @@ export class ContextFormatterService {
             console.error(`📁 [SAVE] File size: ${(content.length / 1024).toFixed(2)} KB`);
             return {
                 filePath,
-                fileName
+                fileName,
             };
         }
         catch (error) {
@@ -518,19 +518,19 @@ export class ContextFormatterService {
             // Generate both formats
             const [summaryResult, fullResult] = await Promise.all([
                 this.formatToSummary(results, { includeSourceUrls: false }),
-                this.formatToContext(results, { format: 'full', includeSourceUrls: true, sectionHeaders: true })
+                this.formatToContext(results, { format: 'full', includeSourceUrls: true, sectionHeaders: true }),
             ]);
             // Save both files
             const [summaryFileInfo, fullFileInfo] = await Promise.all([
                 this.saveToFile(summaryResult.content, baseUrl, 'summary'),
-                this.saveToFile(fullResult.content, baseUrl, 'full')
+                this.saveToFile(fullResult.content, baseUrl, 'full'),
             ]);
-            console.error(`🎉 [SAVE] Both formats saved successfully!`);
+            console.error('🎉 [SAVE] Both formats saved successfully!');
             console.error(`   📄 Summary: ${summaryFileInfo.fileName}`);
             console.error(`   📚 Full: ${fullFileInfo.fileName}`);
             return {
                 summaryFile: summaryFileInfo.filePath,
-                fullFile: fullFileInfo.filePath
+                fullFile: fullFileInfo.filePath,
             };
         }
         catch (error) {

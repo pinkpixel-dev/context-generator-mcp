@@ -14,19 +14,19 @@ const PLATFORM_CONFIGS = {
             content: '.page-inner, .markdown-section, [data-testid="content"]',
             navigation: '.book-summary, .navigation, [data-testid="sidebar"]',
             title: 'h1, .page-title, [data-testid="page-title"]',
-            sidebar: '.book-summary ul, .sidebar-nav'
+            sidebar: '.book-summary ul, .sidebar-nav',
         },
         features: [
             'Rich navigation structure',
             'Interactive content blocks',
             'Search integration',
-            'Version control integration'
+            'Version control integration',
         ],
         platformFeatures: {
             hasSitemap: true,
             hasNavigation: true,
-            isStaticSite: false
-        }
+            isStaticSite: false,
+        },
     },
     docusaurus: {
         name: 'docusaurus',
@@ -36,19 +36,19 @@ const PLATFORM_CONFIGS = {
             content: '.docMainContainer, .markdown, main[role="main"]',
             navigation: '.navbar, .menu, .sidebar',
             title: 'h1, .docTitle, header h1',
-            sidebar: '.menu__list, .sidebar .menu'
+            sidebar: '.menu__list, .sidebar .menu',
         },
         features: [
             'React-based SPA',
             'Version management',
             'Plugin ecosystem',
-            'Search functionality'
+            'Search functionality',
         ],
         platformFeatures: {
             hasSitemap: true,
             hasNavigation: true,
-            isStaticSite: true
-        }
+            isStaticSite: true,
+        },
     },
     vuepress: {
         name: 'vuepress',
@@ -58,19 +58,19 @@ const PLATFORM_CONFIGS = {
             content: '.page, .content, .theme-default-content',
             navigation: '.navbar, .nav-links, .sidebar',
             title: 'h1, .page-title',
-            sidebar: '.sidebar-links, .sidebar .sidebar-links'
+            sidebar: '.sidebar-links, .sidebar .sidebar-links',
         },
         features: [
             'Vue.js components',
             'Markdown extensions',
             'Theme customization',
-            'Fast static generation'
+            'Fast static generation',
         ],
         platformFeatures: {
             hasSitemap: true,
             hasNavigation: true,
-            isStaticSite: true
-        }
+            isStaticSite: true,
+        },
     },
     mintlify: {
         name: 'mintlify',
@@ -80,19 +80,19 @@ const PLATFORM_CONFIGS = {
             content: '.docs-content, .markdown, main',
             navigation: '.sidebar, .nav, .navigation-menu',
             title: 'h1, .docs-title',
-            sidebar: '.sidebar-content, .navigation-menu'
+            sidebar: '.sidebar-content, .navigation-menu',
         },
         features: [
             'API reference integration',
             'Modern UI components',
             'Interactive examples',
-            'Analytics integration'
+            'Analytics integration',
         ],
         platformFeatures: {
             hasSitemap: true,
             hasNavigation: true,
-            isStaticSite: true
-        }
+            isStaticSite: true,
+        },
     },
     generic: {
         name: 'generic',
@@ -102,19 +102,19 @@ const PLATFORM_CONFIGS = {
             content: 'main, .content, #content, .main-content, article, .post-content',
             navigation: 'nav, .nav, .navigation, .menu, .sidebar',
             title: 'h1, title, .title, .page-title',
-            sidebar: '.sidebar, .nav, .menu'
+            sidebar: '.sidebar, .nav, .menu',
         },
         features: [
             'Standard HTML structure',
             'Basic navigation',
-            'Simple content layout'
+            'Simple content layout',
         ],
         platformFeatures: {
             hasSitemap: false,
             hasNavigation: true,
-            isStaticSite: true
-        }
-    }
+            isStaticSite: true,
+        },
+    },
 };
 export class PlatformDetectorService {
     /**
@@ -150,23 +150,23 @@ export class PlatformDetectorService {
                 /\.gitbook\./,
                 /gitbook\.com/,
                 /gitbook\.io/,
-                /app\.gitbook\.com/
+                /app\.gitbook\.com/,
             ],
             docusaurus: [
                 /docusaurus/,
                 /\.netlify\.app.*docs/,
                 /\.vercel\.app.*docs/,
-                /github\.io.*docs/
+                /github\.io.*docs/,
             ],
             vuepress: [
                 /vuepress/,
-                /\.vuepress/
+                /\.vuepress/,
             ],
             mintlify: [
                 /mintlify/,
                 /docs\.[^.]+\.com/,
-                /[^.]+\.mintlify\./
-            ]
+                /[^.]+\.mintlify\./,
+            ],
         };
         for (const [platform, patterns] of Object.entries(urlPatterns)) {
             if (patterns.some(pattern => pattern.test(url))) {
@@ -219,7 +219,7 @@ export class PlatformDetectorService {
             docusaurus: 0,
             vuepress: 0,
             mintlify: 0,
-            generic: 0
+            generic: 0,
         };
         // URL path analysis
         if (url.includes('/docs/'))
@@ -297,8 +297,8 @@ export class PlatformDetectorService {
                 crawlHints: [
                     'Follow sidebar navigation systematically',
                     'Look for SUMMARY.md structure',
-                    'Check for nested sections in navigation'
-                ]
+                    'Check for nested sections in navigation',
+                ],
             },
             docusaurus: {
                 recommendedStrategy: 'sitemap-first',
@@ -307,8 +307,8 @@ export class PlatformDetectorService {
                 crawlHints: [
                     'Start with sitemap.xml for comprehensive coverage',
                     'Follow category-based navigation',
-                    'Check for versioned documentation'
-                ]
+                    'Check for versioned documentation',
+                ],
             },
             vuepress: {
                 recommendedStrategy: 'hybrid',
@@ -317,8 +317,8 @@ export class PlatformDetectorService {
                 crawlHints: [
                     'Combine sitemap and navigation crawling',
                     'Look for .vuepress/config.js patterns',
-                    'Check for guide vs API section separation'
-                ]
+                    'Check for guide vs API section separation',
+                ],
             },
             mintlify: {
                 recommendedStrategy: 'sitemap-first',
@@ -327,9 +327,9 @@ export class PlatformDetectorService {
                 crawlHints: [
                     'Prioritize sitemap.xml for API docs',
                     'Follow structured navigation tree',
-                    'Look for OpenAPI integration'
-                ]
-            }
+                    'Look for OpenAPI integration',
+                ],
+            },
         };
         return strategies[platform.name] || {
             recommendedStrategy: 'navigation-first',
@@ -338,8 +338,8 @@ export class PlatformDetectorService {
             crawlHints: [
                 'Use generic content extraction',
                 'Follow basic link discovery',
-                'Apply conservative crawling approach'
-            ]
+                'Apply conservative crawling approach',
+            ],
         };
     }
 }

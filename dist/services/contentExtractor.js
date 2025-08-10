@@ -62,12 +62,12 @@ export class ContentExtractorService {
                 const language = codeElement?.className.match(/language-(\w+)/)?.[1] || '';
                 const code = codeElement?.textContent || content;
                 return `\n\n\`\`\`${language}\n${code}\n\`\`\`\n\n`;
-            }
+            },
         });
         // Preserve inline code
         this.turndownService.addRule('inlineCode', {
             filter: ['code'],
-            replacement: (content) => `\`${content}\``
+            replacement: (content) => `\`${content}\``,
         });
         // Handle tables better
         this.turndownService.addRule('table', {
@@ -91,7 +91,7 @@ export class ContentExtractorService {
                     return `\n\n${rows.join('\n')}\n\n`;
                 }
                 return content;
-            }
+            },
         });
         // Handle blockquotes
         this.turndownService.addRule('blockquote', {
@@ -99,7 +99,7 @@ export class ContentExtractorService {
             replacement: (content) => {
                 const lines = content.trim().split('\n');
                 return `\n\n${lines.map(line => `> ${line}`).join('\n')}\n\n`;
-            }
+            },
         });
         // Handle alerts/callouts (common in documentation)
         this.turndownService.addRule('alerts', {
@@ -113,7 +113,7 @@ export class ContentExtractorService {
                 const classList = Array.from(element.classList || []);
                 const alertType = classList.find((cls) => ['alert', 'callout', 'admonition', 'note', 'warning', 'tip', 'info'].some(type => cls && cls.includes && cls.includes(type))) || 'note';
                 return `\n\n> **${alertType.toUpperCase()}**: ${content.trim()}\n\n`;
-            }
+            },
         });
     }
     /**
@@ -164,7 +164,7 @@ export class ContentExtractorService {
             'title',
             '[class*="title"]:first',
             '.content h1:first',
-            'main h1:first'
+            'main h1:first',
         ];
         for (const selector of titleSelectors) {
             const element = $(selector).first();
@@ -202,7 +202,7 @@ export class ContentExtractorService {
             '.wiki-content',
             '#content',
             '.container .row .col',
-            'body'
+            'body',
         ];
         for (const selector of contentSelectors) {
             const element = $(selector).first();
@@ -396,7 +396,7 @@ export class ContentExtractorService {
             /page\s*not\s*found/i,
             /access\s*denied/i,
             /forbidden/i,
-            /under\s*construction/i
+            /under\s*construction/i,
         ];
         const hasSpam = spamIndicators.some(pattern => pattern.test(content.content) || pattern.test(content.title));
         if (hasSpam) {
