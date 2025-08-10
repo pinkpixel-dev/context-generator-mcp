@@ -577,6 +577,7 @@ export class ContextFormatterService {
 
   /**
    * Save generated context content to files in the specified directory
+   * Based on robust file writing patterns from deep research MCP server
    */
   async saveToFile(
     content: string, 
@@ -589,11 +590,37 @@ export class ContextFormatterService {
     }
   ): Promise<{ filePath: string; fileName: string }> {
     try {
-      // Use custom directory or default to output
-      const outputDir = options?.directory ? resolve(options.directory) : resolve(process.cwd(), 'output');
+      console.error(`💾 [SAVE] Starting file save operation for ${format} format`);
+      console.error(`📋 [SAVE] Content size: ${(content.length / 1024).toFixed(2)} KB`);
+      
+      // Validate directory path and normalize
+      let outputDir: string;
+      if (options?.directory) {
+        // Use custom directory - resolve to absolute path for reliability
+        outputDir = path.isAbsolute(options.directory) 
+          ? options.directory 
+          : resolve(process.cwd(), options.directory);
+        console.error(`📁 [SAVE] Using custom directory: ${outputDir}`);
+      } else {
+        // Default to output directory in current working directory
+        outputDir = resolve(process.cwd(), 'output');
+        console.error(`📁 [SAVE] Using default output directory: ${outputDir}`);
+      }
+      
+      // Ensure directory exists with recursive creation (robust approach)
+      console.error(`🔧 [SAVE] Ensuring output directory exists...`);
       await fs.mkdir(outputDir, { recursive: true });
+      
+      // Verify directory was created and is writable
+      try {
+        await fs.access(outputDir, fs.constants.W_OK);
+        console.error(`✅ [SAVE] Directory verified as writable: ${outputDir}`);
+      } catch (accessError) {
+        console.error(`❌ [SAVE] Directory access check failed: ${accessError}`);
+        throw new Error(`Cannot write to directory: ${outputDir}. ${accessError instanceof Error ? accessError.message : 'Access denied'}`);
+      }
 
-      // Generate filename
+      // Generate filename with collision avoidance
       let fileName: string;
       if (options?.filename) {
         // Use custom filename with format suffix for differentiation
@@ -611,21 +638,75 @@ export class ContextFormatterService {
         fileName = `${domain}-${format}-${timestamp}.${fileExt}`;
       }
       
-      const filePath = join(outputDir, fileName);
+      // Create absolute file path
+      const filePath = resolve(outputDir, fileName);
+      console.error(`📝 [SAVE] Target file path: ${filePath}`);
+      
+      // Check for existing file and handle potential conflicts
+      try {
+        await fs.access(filePath);
+        console.error(`⚠️ [SAVE] File already exists, will overwrite: ${fileName}`);
+      } catch {
+        console.error(`✅ [SAVE] New file will be created: ${fileName}`);
+      }
+      
+      // Validate content before writing
+      if (!content || content.trim().length === 0) {
+        throw new Error('Cannot save empty content to file');
+      }
+      
+      if (content.length > 50 * 1024 * 1024) { // 50MB limit
+        console.error(`⚠️ [SAVE] Warning: Large file size (${(content.length / 1024 / 1024).toFixed(2)} MB)`);
+      }
 
-      // Write content to file
-      await fs.writeFile(filePath, content, 'utf8');
+      // Write content to file with explicit encoding and error handling
+      console.error(`📤 [SAVE] Writing content to file...`);
+      await fs.writeFile(filePath, content, { encoding: 'utf8', flag: 'w' });
+      
+      // Verify file was written successfully
+      try {
+        const stats = await fs.stat(filePath);
+        const actualSize = stats.size;
+        const expectedSize = Buffer.byteLength(content, 'utf8');
+        
+        if (actualSize !== expectedSize) {
+          console.error(`⚠️ [SAVE] File size mismatch: expected ${expectedSize} bytes, got ${actualSize} bytes`);
+        } else {
+          console.error(`✅ [SAVE] File verification passed: ${actualSize} bytes written`);
+        }
+      } catch (verifyError) {
+        console.error(`⚠️ [SAVE] Could not verify file write: ${verifyError}`);
+        // Don't throw here - file might still be valid
+      }
 
-      console.error(`💾 [SAVE] context file saved: ${filePath}`);
+      console.error(`💾 [SAVE] Context file saved successfully: ${filePath}`);
       console.error(`📁 [SAVE] File size: ${(content.length / 1024).toFixed(2)} KB`);
+      console.error(`📄 [SAVE] Format: ${format}`);
 
       return {
         filePath,
         fileName,
       };
+      
     } catch (error) {
-      console.error('❌ [SAVE] Failed to save context file:', error);
-      throw new Error(`Failed to save file: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      console.error('❌ [SAVE] File save operation failed:', error);
+      
+      // Provide detailed error context
+      const errorDetails = {
+        operation: 'saveToFile',
+        format,
+        contentLength: content?.length || 0,
+        directory: options?.directory,
+        filename: options?.filename,
+        fileFormat: options?.fileFormat,
+        baseUrl,
+      };
+      
+      console.error('🔍 [SAVE] Error context:', errorDetails);
+      
+      // Re-throw with enhanced error message
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      throw new Error(`Failed to save context file: ${errorMessage}`);
     }
   }
 

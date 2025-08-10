@@ -62,18 +62,40 @@ class ContextGeneratorServer {
                 tools: [
                     {
                         name: 'scrape_documentation',
-                        description: `Scrape a documentation website and extract content for context generation. 
+                        description: `🕷️ **Scrape Documentation Website**
 
-This tool crawls documentation sites recursively, following internal links to gather complete documentation. It automatically saves results to files in the specified directory.
+Crawls documentation sites recursively to extract and format content for LLM context generation. Automatically saves formatted results to files.
 
-**File Saving:** Results are automatically saved to .txt or .md files (specify via saveFormat). You can specify the output directory via saveDirectory parameter.
+**📋 Common Usage Patterns:**
+1. **Basic Scraping:** Just provide URL - uses smart defaults
+2. **Single Page:** Set maxDepth: 1 for one page only  
+3. **Deep Crawl:** Set maxDepth: 3+ and maxPages: 100+ for comprehensive scraping
+4. **Custom Output:** Specify saveDirectory and filename for organized storage
 
-**Formats:** 
-- 'llms-txt': Compact summary format suitable for LLM context
-- 'llms-full-txt': Full detailed format with complete content
-- 'both': Saves both formats to separate files
+**🎯 Output Formats:**
+- \`llms-txt\`: Compact summary format (~300 chars per section) - best for LLM context
+- \`llms-full-txt\`: Complete detailed format with all content - comprehensive documentation
+- \`both\`: Generates separate files for both formats - recommended for flexibility
 
-**Recursive Crawling:** Uses maxDepth to follow links recursively through documentation hierarchy. Set maxDepth > 1 to crawl multiple linked pages.`,
+**📁 File Saving (Automatic by default):**
+- Default: Saves to \`./output/\` directory with auto-generated names
+- Custom: Use \`saveDirectory\` for specific folder, \`filename\` for custom name
+- Formats: \`.txt\` (default) or \`.md\` (markdown) via \`saveFormat\`
+
+**🔄 Crawling Behavior:**
+- \`maxDepth: 1\`: Single page only (fast)
+- \`maxDepth: 2-3\`: Moderate crawling (recommended)
+- \`maxDepth: 4+\`: Deep crawling (slow but comprehensive)
+- \`maxPages\`: Limits total pages crawled regardless of depth
+
+**💡 Tips:**
+- Use absolute paths for \`saveDirectory\` for reliability
+- Start with \`preview_page\` to test content extraction first
+- Use \`detect_platform\` to optimize crawling for specific documentation platforms
+
+**⚠️ Important:**
+- Larger sites may take several minutes to crawl completely
+- Files are automatically saved - check the output directory path in results`,
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -127,13 +149,32 @@ This tool crawls documentation sites recursively, following internal links to ga
                     },
                     {
                         name: 'preview_page',
-                        description: 'Preview content extraction from a single page',
+                        description: `🔍 **Preview Page Content Extraction**
+
+Quickly analyze a single documentation page to see how it will be processed before running full site scraping. Perfect for testing and optimization.
+
+**🎯 Use Cases:**
+- **Test Before Scraping:** Check if a documentation page has good content extraction
+- **Content Quality Check:** See document structure, headings, and content length
+- **Platform Validation:** Verify platform detection works correctly for the site
+- **Troubleshooting:** Debug content extraction issues before full crawling
+
+**📄 What You Get:**
+- **Content Analysis:** Character count, headings, links, code blocks
+- **Document Structure:** Hierarchical view of page organization
+- **Platform Detection:** Identified documentation platform type
+- **Content Preview:** First 500 characters of extracted content
+- **Quality Assessment:** Whether content is suitable for LLM context
+
+**⏱️ Performance:** Fast single-page analysis (~1-3 seconds)
+
+**💡 Pro Tip:** Always preview a few pages from a site before doing full scraping to ensure good content extraction quality.`,
                         inputSchema: {
                             type: 'object',
                             properties: {
                                 url: {
                                     type: 'string',
-                                    description: 'URL of the page to preview',
+                                    description: 'URL of the documentation page to preview and analyze (must be a valid HTTP/HTTPS URL)',
                                 },
                             },
                             required: ['url'],
@@ -141,29 +182,86 @@ This tool crawls documentation sites recursively, following internal links to ga
                     },
                     {
                         name: 'detect_platform',
-                        description: 'Detect the documentation platform type for a given URL',
+                        description: `🏷️ **Detect Documentation Platform**
+
+Analyzes a documentation website to identify the platform type (Mintlify, GitBook, Docusaurus, etc.) for optimized crawling strategies.
+
+**🎯 Why Use This:**
+- **Optimize Crawling:** Different platforms have different optimal crawling strategies
+- **Better Extraction:** Platform-specific content extractors provide cleaner results
+- **Troubleshooting:** Helps diagnose content extraction issues
+- **Planning:** Understand site structure before full scraping
+
+**🔍 Detection Capabilities:**
+- **Mintlify:** High-confidence detection via meta tags and structure
+- **GitBook:** Identifies GitBook sites and versions
+- **Docusaurus:** Detects Facebook's documentation platform
+- **VitePress:** Vue-based documentation sites
+- **Generic:** Fallback for unknown platforms with confidence scoring
+
+**📊 What You Get:**
+- **Platform Name:** Identified documentation platform
+- **Confidence Score:** How certain the detection is (0-100%)
+- **Platform Features:** Detected capabilities and characteristics
+- **Optimization Tips:** How this affects crawling strategies
+
+**⚡ Performance:** Lightning fast analysis (~100-500ms)
+
+**💡 Pro Tip:** Run this before \`scrape_documentation\` to understand the site structure and optimize your crawling approach.`,
                         inputSchema: {
                             type: 'object',
                             properties: {
                                 url: {
                                     type: 'string',
-                                    description: 'URL to analyze for platform detection',
+                                    description: 'URL of the documentation site to analyze for platform detection (homepage or any documentation page)',
                                 },
                             },
                             required: ['url'],
                         },
-                    }, {
+                    },
+                    {
                         name: 'generate_context',
-                        description: `Generate context format from crawled content and optionally save to files.
+                        description: `📝 **Generate Context from Crawl Results**
 
-This tool formats crawl results into structured context files suitable for LLMs. It supports multiple output formats and automatic file saving with customizable options.
+Formats raw crawl results into structured, LLM-optimized context files. Perfect for processing custom crawl data or results from other scraping tools.
 
-**File Saving:** Results are automatically saved to files (specify saveToFile: false to disable). You can customize the output directory, filename, and file format.
+**🎯 Use Cases:**
+- **Post-Processing:** Format crawl results from external tools
+- **Custom Workflows:** Process manually collected documentation content
+- **Batch Processing:** Convert multiple crawl results into standardized formats
+- **Format Conversion:** Transform existing content into LLM-friendly formats
 
-**Formats:**
-- 'summary': Compact format optimized for LLM context windows
-- 'full': Complete detailed format with all content
-- 'both': Generates both summary and full formats`,
+**📋 Input Requirements:**
+Each crawl result must have:
+- \`url\`: Source URL (string)
+- \`title\`: Page title (string) 
+- \`content\`: Page content (string)
+- \`success\`: Whether crawl succeeded (boolean)
+
+**📊 Output Formats:**
+- \`summary\`: Compact format (~300 chars/section) - ideal for LLM context limits
+- \`full\`: Complete detailed format - comprehensive documentation
+- \`both\`: Generates separate files for each format - maximum flexibility
+
+**💾 File Saving (Automatic by default):**
+- **Auto-Save:** Results saved to \`./output/\` with generated filenames
+- **Custom Directory:** Use \`saveDirectory\` (recommend absolute paths)
+- **Custom Names:** Use \`filename\` for specific base names
+- **Formats:** \`.txt\` (default) or \`.md\` (markdown)
+
+**🔧 Processing Features:**
+- **Content Validation:** Checks for common formatting issues
+- **Source Attribution:** Optional URL inclusion for traceability
+- **Section Structure:** Configurable headers and organization
+- **Length Control:** Customizable section length limits
+
+**⚡ Performance:** Fast processing - typically completes in under 5 seconds
+
+**💡 Pro Tips:**
+- Use \`summary\` format for token-limited LLM contexts
+- Use \`full\` format for comprehensive documentation needs
+- Use \`both\` for maximum flexibility in different use cases
+- Validate your input format matches the expected schema`,
                         inputSchema: {
                             type: 'object',
                             properties: {

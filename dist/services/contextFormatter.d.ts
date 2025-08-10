@@ -93,6 +93,7 @@ export declare class ContextFormatterService {
     };
     /**
      * Save generated context content to files in the specified directory
+     * Based on robust file writing patterns from deep research MCP server
      */
     saveToFile(content: string, baseUrl: string, format?: string, options?: {
         directory?: string;
