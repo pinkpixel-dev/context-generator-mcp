@@ -2,8 +2,9 @@
  * Context Formatter Service
  * Formats extracted content into proper context format
  */
-import { promises as fs } from 'fs';
-import { join, resolve } from 'path';
+import fs from 'fs/promises';
+import path from 'path';
+const { resolve, join } = path;
 export class ContextFormatterService {
     /**
      * Main method to format crawl results into context format
@@ -484,17 +485,32 @@ export class ContextFormatterService {
         };
     }
     /**
-     * Save generated context content to files in the output directory
+     * Save generated context content to files in the specified directory
      */
-    async saveToFile(content, baseUrl, format = 'full') {
+    async saveToFile(content, baseUrl, format = 'full', options) {
         try {
-            // Ensure output directory exists
-            const outputDir = resolve(process.cwd(), 'output');
+            // Use custom directory or default to output
+            const outputDir = options?.directory ? resolve(options.directory) : resolve(process.cwd(), 'output');
             await fs.mkdir(outputDir, { recursive: true });
-            // Generate filename based on domain and timestamp
-            const domain = this.getDomainFromUrl(baseUrl);
-            const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
-            const fileName = `${domain}-${format}-${timestamp}.txt`;
+            // Generate filename
+            let fileName;
+            if (options?.filename) {
+                // Use custom filename with format suffix for differentiation
+                const fileExt = options?.fileFormat || 'txt';
+                if (format === 'summary' || format === 'full') {
+                    fileName = `${options.filename}-${format}.${fileExt}`;
+                }
+                else {
+                    fileName = `${options.filename}.${fileExt}`;
+                }
+            }
+            else {
+                // Generate filename based on domain and timestamp
+                const domain = this.getDomainFromUrl(baseUrl);
+                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').split('T')[0];
+                const fileExt = options?.fileFormat || 'txt';
+                fileName = `${domain}-${format}-${timestamp}.${fileExt}`;
+            }
             const filePath = join(outputDir, fileName);
             // Write content to file
             await fs.writeFile(filePath, content, 'utf8');

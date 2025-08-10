@@ -62,7 +62,18 @@ class ContextGeneratorServer {
                 tools: [
                     {
                         name: 'scrape_documentation',
-                        description: 'Scrape a documentation website and extract content for context generation',
+                        description: `Scrape a documentation website and extract content for context generation. 
+
+This tool crawls documentation sites recursively, following internal links to gather complete documentation. It automatically saves results to files in the specified directory.
+
+**File Saving:** Results are automatically saved to .txt or .md files (specify via saveFormat). You can specify the output directory via saveDirectory parameter.
+
+**Formats:** 
+- 'llms-txt': Compact summary format suitable for LLM context
+- 'llms-full-txt': Full detailed format with complete content
+- 'both': Saves both formats to separate files
+
+**Recursive Crawling:** Uses maxDepth to follow links recursively through documentation hierarchy. Set maxDepth > 1 to crawl multiple linked pages.`,
                         inputSchema: {
                             type: 'object',
                             properties: {
@@ -72,23 +83,41 @@ class ContextGeneratorServer {
                                 },
                                 options: {
                                     type: 'object',
-                                    description: 'Crawling options',
+                                    description: 'Crawling and saving options',
                                     properties: {
                                         maxPages: {
                                             type: 'number',
-                                            description: 'Maximum number of pages to crawl (default: 50)',
+                                            description: 'Maximum number of pages to crawl recursively (default: 50)',
                                         },
                                         maxDepth: {
                                             type: 'number',
-                                            description: 'Maximum crawl depth (default: 3)',
-                                        }, outputFormat: {
+                                            description: 'Maximum crawl depth - how many levels deep to follow links (default: 3, set to 1 for single page)',
+                                        },
+                                        outputFormat: {
                                             type: 'string',
                                             enum: ['llms-txt', 'llms-full-txt', 'both'],
-                                            description: 'Output format (default: both)',
+                                            description: 'Content format to generate (default: both)',
                                         },
                                         delayMs: {
                                             type: 'number',
                                             description: 'Delay between requests in milliseconds (default: 1000)',
+                                        },
+                                        saveToFile: {
+                                            type: 'boolean',
+                                            description: 'Whether to save results to files (default: true)',
+                                        },
+                                        saveDirectory: {
+                                            type: 'string',
+                                            description: 'Directory to save files (default: ./output). Use absolute path for reliability.',
+                                        },
+                                        saveFormat: {
+                                            type: 'string',
+                                            enum: ['txt', 'md'],
+                                            description: 'File format for saved files: .txt or .md (default: txt)',
+                                        },
+                                        filename: {
+                                            type: 'string',
+                                            description: 'Base filename (without extension). If not specified, generates from site domain.',
                                         },
                                     },
                                 },
@@ -125,29 +154,69 @@ class ContextGeneratorServer {
                         },
                     }, {
                         name: 'generate_context',
-                        description: 'Generate context format from crawled content',
+                        description: `Generate context format from crawled content and optionally save to files.
+
+This tool formats crawl results into structured context files suitable for LLMs. It supports multiple output formats and automatic file saving with customizable options.
+
+**File Saving:** Results are automatically saved to files (specify saveToFile: false to disable). You can customize the output directory, filename, and file format.
+
+**Formats:**
+- 'summary': Compact format optimized for LLM context windows
+- 'full': Complete detailed format with all content
+- 'both': Generates both summary and full formats`,
                         inputSchema: {
                             type: 'object',
                             properties: {
                                 crawlResults: {
                                     type: 'array',
-                                    description: 'Array of crawl results to format',
+                                    description: 'Array of crawl results to format. Each result should have: url, title, content, success properties.',
                                     items: {
                                         type: 'object',
+                                        properties: {
+                                            url: { type: 'string' },
+                                            title: { type: 'string' },
+                                            content: { type: 'string' },
+                                            success: { type: 'boolean' },
+                                        },
                                     },
                                 },
                                 options: {
                                     type: 'object',
-                                    description: 'Formatting options',
+                                    description: 'Formatting and file saving options',
                                     properties: {
                                         format: {
                                             type: 'string',
-                                            enum: ['summary', 'full'],
-                                            description: 'Format type (default: full)',
+                                            enum: ['summary', 'full', 'both'],
+                                            description: 'Format type to generate (default: full)',
                                         },
                                         includeSourceUrls: {
                                             type: 'boolean',
-                                            description: 'Include source URLs (default: true)',
+                                            description: 'Include source URLs in generated content (default: true)',
+                                        },
+                                        sectionHeaders: {
+                                            type: 'boolean',
+                                            description: 'Include section headers for structure (default: true)',
+                                        },
+                                        maxSectionLength: {
+                                            type: 'number',
+                                            description: 'Maximum length for content sections (default: 1000)',
+                                        },
+                                        saveToFile: {
+                                            type: 'boolean',
+                                            description: 'Whether to save results to files (default: true)',
+                                        },
+                                        saveDirectory: {
+                                            type: 'string',
+                                            description: 'Directory to save files (default: ./output). Use absolute path for reliability.',
+                                        },
+                                        saveFormat: {
+                                            type: 'string',
+                                            enum: ['txt', 'md'],
+                                            description: 'File format for saved files: .txt or .md (default: txt)',
+                                        },
+                                        filename: {
+                                            type: 'string',
+                                            description: 'Base filename (without extension). If not specified, generates from first URL domain.',
                                         },
                                     },
                                 },
@@ -241,22 +310,42 @@ class ContextGeneratorServer {
                 }
             }
             console.error(`✅ [SCRAPE-DOC] Processed ${processedResults.length} pages`);
-            // Step 4: Format to context
+            // Step 4: Format to context and save files
             console.error(`📝 [SCRAPE-DOC] Step 4: Generating context format...`);
             const results = [];
+            const savedFiles = [];
+            // File saving options
+            const fileOptions = {
+                directory: options.saveDirectory,
+                filename: options.filename,
+                fileFormat: options.saveFormat
+            };
             // Generate both formats if requested
             if (options.outputFormat === 'both' || options.outputFormat === 'llms-txt') {
+                console.error(`📝 [SCRAPE-DOC] Generating summary format...`);
                 const summaryContext = await this.formatter.formatToSummary(processedResults, {
                     includeSourceUrls: false,
                     sectionHeaders: false,
                     maxSectionLength: 300
                 });
-                results.push({
-                    type: 'text',
-                    text: `# 📄 Summary Format (llms.txt)\n\n${summaryContext.content}`
-                });
+                // Save summary file if saveToFile is enabled (default: true)
+                if (options.saveToFile !== false) {
+                    const summaryFileInfo = await this.formatter.saveToFile(summaryContext.content, args.url, 'summary', fileOptions);
+                    savedFiles.push(summaryFileInfo.fileName);
+                    results.push({
+                        type: 'text',
+                        text: `# 📄 Summary Format\n\n**💾 Saved as:** \`${summaryFileInfo.fileName}\`\n\n${summaryContext.content.substring(0, 1500)}${summaryContext.content.length > 1500 ? '\n\n...(truncated in preview)' : ''}`
+                    });
+                }
+                else {
+                    results.push({
+                        type: 'text',
+                        text: `# 📄 Summary Format\n\n${summaryContext.content}`
+                    });
+                }
             }
             if (options.outputFormat === 'both' || options.outputFormat === 'llms-full-txt') {
+                console.error(`📝 [SCRAPE-DOC] Generating full format...`);
                 const fullContext = await this.formatter.formatToContext(processedResults, {
                     format: 'full',
                     includeSourceUrls: true,
@@ -267,15 +356,37 @@ class ContextGeneratorServer {
                 if (!validation.valid) {
                     console.error(`⚠️ [SCRAPE-DOC] Content validation issues: ${validation.issues.join(', ')}`);
                 }
-                results.push({
-                    type: 'text',
-                    text: `# 📚 Full Format (llms-full.txt)\n\n${fullContext.content}`
-                });
+                // Save full format file if saveToFile is enabled (default: true)
+                if (options.saveToFile !== false) {
+                    const fullFileInfo = await this.formatter.saveToFile(fullContext.content, args.url, 'full', fileOptions);
+                    savedFiles.push(fullFileInfo.fileName);
+                    results.push({
+                        type: 'text',
+                        text: `# 📚 Full Format\n\n**💾 Saved as:** \`${fullFileInfo.fileName}\`\n\n${fullContext.content.substring(0, 2500)}${fullContext.content.length > 2500 ? '\n\n...(truncated in preview, full content saved to file)' : ''}`
+                    });
+                }
+                else {
+                    results.push({
+                        type: 'text',
+                        text: `# 📚 Full Format\n\n${fullContext.content}`
+                    });
+                }
+                // Add validation report if there are issues
+                if (!validation.valid) {
+                    results.push({
+                        type: 'text',
+                        text: `## ⚠️ Content Validation Report\n\n` +
+                            `**Issues Found:**\n` +
+                            validation.issues.map(issue => `- ${issue}`).join('\n') + '\n\n' +
+                            `*Note: These issues don't prevent generation but may affect LLM performance.*`
+                    });
+                }
             }
             // Step 5: Generate summary report
             const endTime = Date.now();
             const duration = Math.round((endTime - startTime) / 1000);
             const failedCount = crawlResults.length - successfulResults.length;
+            const outputDir = options.saveDirectory || this.formatter.getOutputDirectory();
             const summaryReport = {
                 type: 'text',
                 text: `## 🎉 Documentation Scraping Complete!\n\n` +
@@ -288,6 +399,12 @@ class ContextGeneratorServer {
                     `- **Failed:** ${failedCount}\n` +
                     `- **Duration:** ${duration}s\n` +
                     `- **Output Format:** ${options.outputFormat}\n\n` +
+                    (savedFiles.length > 0
+                        ? `**💾 Files Saved:**\n${savedFiles.map(file => `  - \`${file}\``).join('\n')}\n\n`
+                        : '') +
+                    (options.saveToFile !== false
+                        ? `**📁 Output Directory:** \`${outputDir}\`\n\n`
+                        : '') +
                     `**✨ Generated context files are ready for use with LLMs!**\n\n` +
                     `*Made with ❤️ by Pink Pixel (https://pinkpixel.dev)*`
             };
@@ -419,44 +536,81 @@ class ContextGeneratorServer {
     }
     async handleGenerateContext(args) {
         try {
-            console.error(`📝 [GENERATE] Starting context generation for ${args.crawlResults.length} crawl results`);
+            console.error(`📝 [GENERATE] Starting context generation for ${args.crawlResults?.length || 0} crawl results`);
             const startTime = Date.now();
             // Validate input
             if (!args.crawlResults || args.crawlResults.length === 0) {
                 throw new Error('No crawl results provided for formatting');
             }
+            // Validate crawl results format and convert if needed
+            const validatedResults = args.crawlResults.map((result, index) => {
+                if (!result || typeof result !== 'object') {
+                    throw new Error(`Invalid crawl result at index ${index}: must be an object`);
+                }
+                // Ensure required fields exist
+                return {
+                    url: result.url || `unknown-url-${index}`,
+                    title: result.title || 'Untitled',
+                    content: result.content || '',
+                    success: result.success ?? (result.content ? true : false),
+                    timestamp: result.timestamp || new Date().toISOString()
+                };
+            });
+            const successfulResults = validatedResults.filter(r => r.success && r.content);
+            if (successfulResults.length === 0) {
+                throw new Error('No successful crawl results with content found');
+            }
+            console.error(`✅ [GENERATE] Processing ${successfulResults.length} successful results`);
             const options = {
                 format: 'full',
                 includeSourceUrls: true,
                 sectionHeaders: true,
                 maxSectionLength: 1000,
+                saveToFile: true,
+                saveDirectory: undefined,
+                saveFormat: 'txt',
+                filename: undefined,
                 ...args.options
             };
             console.error(`📝 [GENERATE] Options: ${JSON.stringify(options, null, 2)}`);
             const results = [];
             const savedFiles = [];
             // Get base URL for file saving
-            const baseUrl = args.crawlResults.find(r => r.url)?.url || 'unknown';
+            const baseUrl = successfulResults.find(r => r.url)?.url || 'unknown';
+            // File saving options
+            const fileOptions = {
+                directory: options.saveDirectory,
+                filename: options.filename,
+                fileFormat: options.saveFormat
+            };
             // Generate summary format
             if (options.format === 'summary' || options.format === 'both') {
                 console.error(`📝 [GENERATE] Generating summary format...`);
-                const summaryResult = await this.formatter.formatToSummary(args.crawlResults, {
+                const summaryResult = await this.formatter.formatToSummary(successfulResults, {
                     includeSourceUrls: options.includeSourceUrls,
                     sectionHeaders: options.sectionHeaders,
                     maxSectionLength: Math.min(options.maxSectionLength, 500)
                 });
-                // Save summary file
-                const summaryFileInfo = await this.formatter.saveToFile(summaryResult.content, baseUrl, 'summary');
-                savedFiles.push(summaryFileInfo.fileName);
-                results.push({
-                    type: 'text',
-                    text: `# 📄 Summary Format (llms.txt)\n\n**💾 Saved as:** \`${summaryFileInfo.fileName}\`\n\n${summaryResult.content}`
-                });
+                // Save summary file if requested
+                if (options.saveToFile) {
+                    const summaryFileInfo = await this.formatter.saveToFile(summaryResult.content, baseUrl, 'summary', fileOptions);
+                    savedFiles.push(summaryFileInfo.fileName);
+                    results.push({
+                        type: 'text',
+                        text: `# 📄 Summary Format\n\n**💾 Saved as:** \`${summaryFileInfo.fileName}\`\n\n${summaryResult.content.substring(0, 1000)}${summaryResult.content.length > 1000 ? '\n\n...(truncated in preview)' : ''}`
+                    });
+                }
+                else {
+                    results.push({
+                        type: 'text',
+                        text: `# 📄 Summary Format\n\n${summaryResult.content}`
+                    });
+                }
             }
             // Generate full format
             if (options.format === 'full' || options.format === 'both') {
                 console.error(`📝 [GENERATE] Generating full format...`);
-                const fullResult = await this.formatter.formatToContext(args.crawlResults, {
+                const fullResult = await this.formatter.formatToContext(successfulResults, {
                     format: 'full',
                     includeSourceUrls: options.includeSourceUrls,
                     sectionHeaders: options.sectionHeaders,
@@ -467,13 +621,21 @@ class ContextGeneratorServer {
                 if (!validation.valid) {
                     console.error(`⚠️ [GENERATE] Content validation issues: ${validation.issues.join(', ')}`);
                 }
-                // Save full format file
-                const fullFileInfo = await this.formatter.saveToFile(fullResult.content, baseUrl, 'full');
-                savedFiles.push(fullFileInfo.fileName);
-                results.push({
-                    type: 'text',
-                    text: `# 📂 Full Format (llms-full.txt)\n\n**💾 Saved as:** \`${fullFileInfo.fileName}\`\n\n${fullResult.content}`
-                });
+                // Save full format file if requested
+                if (options.saveToFile) {
+                    const fullFileInfo = await this.formatter.saveToFile(fullResult.content, baseUrl, 'full', fileOptions);
+                    savedFiles.push(fullFileInfo.fileName);
+                    results.push({
+                        type: 'text',
+                        text: `# 📚 Full Format\n\n**💾 Saved as:** \`${fullFileInfo.fileName}\`\n\n${fullResult.content.substring(0, 2000)}${fullResult.content.length > 2000 ? '\n\n...(truncated in preview, full content saved to file)' : ''}`
+                    });
+                }
+                else {
+                    results.push({
+                        type: 'text',
+                        text: `# 📚 Full Format\n\n${fullResult.content}`
+                    });
+                }
                 // Add validation report if there are issues
                 if (!validation.valid) {
                     results.push({
@@ -488,21 +650,24 @@ class ContextGeneratorServer {
             const endTime = Date.now();
             const duration = Math.round((endTime - startTime) / 1000);
             // Add generation summary
-            const outputDir = this.formatter.getOutputDirectory();
+            const outputDir = options.saveDirectory || this.formatter.getOutputDirectory();
             const summaryReport = {
                 type: 'text',
-                text: `## 🎉 context Generation Complete!\n\n` +
-                    `**📅 Generation Summary:**\n` +
-                    `- **Source Results:** ${args.crawlResults.length}\n` +
+                text: `## 🎉 Context Generation Complete!\n\n` +
+                    `**📊 Generation Summary:**\n` +
+                    `- **Source Results:** ${successfulResults.length}\n` +
                     `- **Format:** ${options.format}\n` +
                     `- **Include URLs:** ${options.includeSourceUrls ? '✅ Yes' : '❌ No'}\n` +
                     `- **Section Headers:** ${options.sectionHeaders ? '✅ Yes' : '❌ No'}\n` +
                     `- **Max Section Length:** ${options.maxSectionLength} chars\n` +
                     `- **Generation Time:** ${duration}s\n\n` +
-                    `**💾 Files Saved:**\n` +
-                    savedFiles.map(file => `  - \`${file}\``).join('\n') + '\n\n' +
-                    `**📁 Output Directory:** \`${outputDir}\`\n\n` +
-                    `**✨ Your context files are saved and ready for use with LLMs!**\n\n` +
+                    (savedFiles.length > 0
+                        ? `**💾 Files Saved:**\n${savedFiles.map(file => `  - \`${file}\``).join('\n')}\n\n`
+                        : '') +
+                    (options.saveToFile
+                        ? `**📁 Output Directory:** \`${outputDir}\`\n\n`
+                        : '') +
+                    `**✨ Context generation completed successfully!**\n\n` +
                     `*Made with ❤️ by Pink Pixel (https://pinkpixel.dev)*`
             };
             console.error(`🎉 [GENERATE] context generation completed in ${duration}s!`);
@@ -515,11 +680,13 @@ class ContextGeneratorServer {
             return {
                 content: [{
                         type: 'text',
-                        text: `❌ **context Generation Failed**\n\n` +
+                        text: `❌ **Context Generation Failed**\n\n` +
                             `**Error:** ${error instanceof Error ? error.message : 'Unknown error'}\n\n` +
                             `**Input:** ${args.crawlResults?.length || 0} crawl results\n` +
                             `**Options:** ${JSON.stringify(args.options || {}, null, 2)}\n\n` +
-                            `Please check your input data and options, then try again.`
+                            `**Expected Format:** Array of objects with properties: url, title, content, success\n` +
+                            `Example: [{"url": "https://example.com", "title": "Page Title", "content": "Page content...", "success": true}]\n\n` +
+                            `Please check your input data format and try again.`
                     }],
                 isError: true
             };

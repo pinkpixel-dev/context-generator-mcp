@@ -31,6 +31,10 @@ export interface CrawlOptions {
     delayMs?: number;
     userAgent?: string;
     outputFormat?: 'llms-txt' | 'llms-full-txt' | 'both';
+    saveToFile?: boolean;
+    saveDirectory?: string;
+    saveFormat?: 'txt' | 'md';
+    filename?: string;
 }
 export interface CrawlResult {
     success: boolean;
@@ -63,6 +67,10 @@ export interface ContextOptions {
     includeSourceUrls: boolean;
     sectionHeaders: boolean;
     maxSectionLength?: number;
+    saveToFile?: boolean;
+    saveDirectory?: string;
+    saveFormat?: 'txt' | 'md';
+    filename?: string;
 }
 export interface ContextSection {
     title: string;

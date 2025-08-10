@@ -92,9 +92,13 @@ export declare class ContextFormatterService {
         issues: string[];
     };
     /**
-     * Save generated context content to files in the output directory
+     * Save generated context content to files in the specified directory
      */
-    saveToFile(content: string, baseUrl: string, format?: string): Promise<{
+    saveToFile(content: string, baseUrl: string, format?: string, options?: {
+        directory?: string;
+        filename?: string;
+        fileFormat?: 'txt' | 'md';
+    }): Promise<{
         filePath: string;
         fileName: string;
     }>;

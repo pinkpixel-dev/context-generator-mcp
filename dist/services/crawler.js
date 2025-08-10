@@ -111,11 +111,23 @@ export class CrawlerService {
      */
     async crawlDocumentation(url, options = {}) {
         await this.ensureInitialized();
-        const { maxPages = 50, delayMs = 1000 } = options;
+        const { maxPages = 50, maxDepth = 3, delayMs = 1000 } = options;
         console.error(`🕷️ [DOC-CRAWL] Starting documentation crawl: ${url}`);
-        console.error(`📋 [DOC-CRAWL] Parameters: maxPages=${maxPages}, delay=${delayMs}ms`);
+        console.error(`📋 [DOC-CRAWL] Parameters: maxPages=${maxPages}, maxDepth=${maxDepth}, delay=${delayMs}ms`);
         try {
-            // Step 1: Discover all documentation URLs
+            // If maxDepth is 0 or 1, just crawl the single page
+            if (maxDepth <= 1) {
+                console.error(`🔍 [DOC-CRAWL] Single page mode (maxDepth=${maxDepth})`);
+                const baseResult = await this.crawlSinglePage(url);
+                if (baseResult.success) {
+                    return [baseResult];
+                }
+                else {
+                    throw new Error('Single page crawl failed');
+                }
+            }
+            // For recursive crawling, discover URLs first
+            console.error(`🔍 [DOC-CRAWL] Recursive mode (maxDepth=${maxDepth}), discovering URLs...`);
             const urlsToCrawl = await this.discoverDocumentationUrls(url, options);
             if (urlsToCrawl.length === 0) {
                 console.error('⚠️ [DOC-CRAWL] No URLs discovered via sitemap/navigation, falling back to base URL');
@@ -128,8 +140,9 @@ export class CrawlerService {
                     throw new Error('No documentation URLs discovered and base URL crawl failed');
                 }
             }
+            console.error(`📋 [DOC-CRAWL] Found ${urlsToCrawl.length} URLs, crawling up to ${maxPages}...`);
             // Step 2: Crawl all discovered URLs using your proven x-crawl patterns
-            const crawlResults = await this.crawlMultiplePages(urlsToCrawl, delayMs);
+            const crawlResults = await this.crawlMultiplePages(urlsToCrawl.slice(0, maxPages), delayMs);
             console.error('🎉 [DOC-CRAWL] Documentation crawl completed successfully!');
             console.error(`📊 [DOC-CRAWL] Results: ${crawlResults.length} pages processed`);
             return crawlResults;
