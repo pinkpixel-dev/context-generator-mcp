@@ -580,25 +580,25 @@ export class ContextFormatterService {
    * Based on robust file writing patterns from deep research MCP server
    */
   async saveToFile(
-    content: string, 
-    baseUrl: string, 
-    format: string = 'full', 
+    content: string,
+    baseUrl: string,
+    format: string = 'full',
     options?: {
       directory?: string;
       filename?: string;
       fileFormat?: 'txt' | 'md';
-    }
+    },
   ): Promise<{ filePath: string; fileName: string }> {
     try {
       console.error(`💾 [SAVE] Starting file save operation for ${format} format`);
       console.error(`📋 [SAVE] Content size: ${(content.length / 1024).toFixed(2)} KB`);
-      
+
       // Validate directory path and normalize
       let outputDir: string;
       if (options?.directory) {
         // Use custom directory - resolve to absolute path for reliability
-        outputDir = path.isAbsolute(options.directory) 
-          ? options.directory 
+        outputDir = path.isAbsolute(options.directory)
+          ? options.directory
           : resolve(process.cwd(), options.directory);
         console.error(`📁 [SAVE] Using custom directory: ${outputDir}`);
       } else {
@@ -606,11 +606,11 @@ export class ContextFormatterService {
         outputDir = resolve(process.cwd(), 'output');
         console.error(`📁 [SAVE] Using default output directory: ${outputDir}`);
       }
-      
+
       // Ensure directory exists with recursive creation (robust approach)
-      console.error(`🔧 [SAVE] Ensuring output directory exists...`);
+      console.error('🔧 [SAVE] Ensuring output directory exists...');
       await fs.mkdir(outputDir, { recursive: true });
-      
+
       // Verify directory was created and is writable
       try {
         await fs.access(outputDir, fs.constants.W_OK);
@@ -637,11 +637,11 @@ export class ContextFormatterService {
         const fileExt = options?.fileFormat || 'txt';
         fileName = `${domain}-${format}-${timestamp}.${fileExt}`;
       }
-      
+
       // Create absolute file path
       const filePath = resolve(outputDir, fileName);
       console.error(`📝 [SAVE] Target file path: ${filePath}`);
-      
+
       // Check for existing file and handle potential conflicts
       try {
         await fs.access(filePath);
@@ -649,26 +649,26 @@ export class ContextFormatterService {
       } catch {
         console.error(`✅ [SAVE] New file will be created: ${fileName}`);
       }
-      
+
       // Validate content before writing
       if (!content || content.trim().length === 0) {
         throw new Error('Cannot save empty content to file');
       }
-      
+
       if (content.length > 50 * 1024 * 1024) { // 50MB limit
         console.error(`⚠️ [SAVE] Warning: Large file size (${(content.length / 1024 / 1024).toFixed(2)} MB)`);
       }
 
       // Write content to file with explicit encoding and error handling
-      console.error(`📤 [SAVE] Writing content to file...`);
+      console.error('📤 [SAVE] Writing content to file...');
       await fs.writeFile(filePath, content, { encoding: 'utf8', flag: 'w' });
-      
+
       // Verify file was written successfully
       try {
         const stats = await fs.stat(filePath);
         const actualSize = stats.size;
         const expectedSize = Buffer.byteLength(content, 'utf8');
-        
+
         if (actualSize !== expectedSize) {
           console.error(`⚠️ [SAVE] File size mismatch: expected ${expectedSize} bytes, got ${actualSize} bytes`);
         } else {
@@ -687,10 +687,10 @@ export class ContextFormatterService {
         filePath,
         fileName,
       };
-      
+
     } catch (error) {
       console.error('❌ [SAVE] File save operation failed:', error);
-      
+
       // Provide detailed error context
       const errorDetails = {
         operation: 'saveToFile',
@@ -701,9 +701,9 @@ export class ContextFormatterService {
         fileFormat: options?.fileFormat,
         baseUrl,
       };
-      
+
       console.error('🔍 [SAVE] Error context:', errorDetails);
-      
+
       // Re-throw with enhanced error message
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       throw new Error(`Failed to save context file: ${errorMessage}`);
