@@ -1,5 +1,7 @@
 # 🚀 context-generator MCP Server
 
+[![smithery badge](https://smithery.ai/badge/@pinkpixel-dev/context-generator-mcp)](https://smithery.ai/server/@pinkpixel-dev/context-generator-mcp)
+
 An MCP (Model Context Protocol) server that scrapes documentation websites and generates `context` files. Built with proven x-crawl patterns for reliable web scraping.
 
 ## ✨ Features
@@ -63,6 +65,15 @@ Generate context format from crawled content.
 
 ## 🔧 Installation
 
+### Installing via Smithery
+
+To install context-generator-mcp for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@pinkpixel-dev/context-generator-mcp):
+
+```bash
+npx -y @smithery/cli install @pinkpixel-dev/context-generator-mcp --client claude
+```
+
+### Manual Installation
 ```bash
 npm install
 npm run build
