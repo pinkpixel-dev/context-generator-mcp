@@ -2,11 +2,12 @@
  * Crawler Service - Based on proven x-crawl patterns
  * Handles web scraping with documentation-specific enhancements
  */
-import { createCrawl, createCrawlOpenAI } from 'x-crawl';
+import { createCrawl, createCrawlOpenAI, createCrawlOllama } from 'x-crawl';
 import { load } from 'cheerio';
 export class CrawlerService {
     crawlApp;
     crawlOpenAIApp;
+    crawlOllamaApp;
     initialized = false;
     constructor() {
         // Initialize will be called asynchronously
@@ -42,27 +43,44 @@ export class CrawlerService {
                 console.error('ℹ️ OpenAI API key not found, x-crawl initialized without OpenAI support');
             }
             // Initialize Ollama crawler if available
-            if (process.env.OLLAMA_API_KEY || process.env.OLLAMA_BASE_URL) {
+            // Unlike OpenAI, Ollama typically doesn't require an API key (runs locally)
+            // The main requirement is a model name and optionally a base URL
+            if (process.env.OLLAMA_MODEL || process.env.OLLAMA_BASE_URL) {
                 try {
-                    const ollamaOptions = {};
-                    if (process.env.OLLAMA_API_KEY) {
-                        ollamaOptions.apiKey = process.env.OLLAMA_API_KEY;
-                    }
+                    const ollamaModel = process.env.OLLAMA_MODEL || 'llama3.1';
+                    const clientOptions = {};
+                    // Set base URL if provided (for remote Ollama instances)
                     if (process.env.OLLAMA_BASE_URL) {
-                        ollamaOptions.baseURL = process.env.OLLAMA_BASE_URL;
+                        clientOptions.host = process.env.OLLAMA_BASE_URL;
                     }
-                    // Note: createCrawlOllama might need different configuration
-                    // This is a placeholder - adjust based on x-crawl's actual Ollama API
-                    console.error('ℹ️ Ollama configuration detected but not implemented yet');
-                    console.error(`   Base URL: ${process.env.OLLAMA_BASE_URL || 'default'}`);
-                    console.error(`   Model: ${process.env.OLLAMA_MODEL || 'default'}`);
+                    // Add API key if provided (some hosted Ollama instances may require it)
+                    if (process.env.OLLAMA_API_KEY) {
+                        clientOptions.headers = {
+                            'Authorization': `Bearer ${process.env.OLLAMA_API_KEY}`
+                        };
+                    }
+                    console.error(`🦙 [OLLAMA] Initializing with model: ${ollamaModel}`);
+                    if (clientOptions.host) {
+                        console.error(`🦙 [OLLAMA] Using base URL: ${clientOptions.host}`);
+                    }
+                    else {
+                        console.error(`🦙 [OLLAMA] Using default local URL (http://localhost:11434)`);
+                    }
+                    this.crawlOllamaApp = createCrawlOllama({
+                        model: ollamaModel,
+                        clientOptions: clientOptions,
+                    });
+                    console.error('✅ Ollama crawler initialized successfully');
+                    console.error(`   Model: ${ollamaModel}`);
+                    console.error(`   Host: ${clientOptions.host || 'localhost:11434 (default)'}`);
                 }
                 catch (error) {
                     console.error('⚠️ Failed to initialize Ollama crawler:', error);
                 }
             }
             else {
-                console.error('ℹ️ Ollama configuration not found, x-crawl initialized without Ollama support');
+                console.error('ℹ️ Ollama configuration not found (set OLLAMA_MODEL and optionally OLLAMA_BASE_URL)');
+                console.error('   Example: OLLAMA_MODEL=llama3.1 OLLAMA_BASE_URL=http://localhost:11434');
             }
             this.initialized = true;
             console.error('✅ Documentation crawler service initialized successfully');

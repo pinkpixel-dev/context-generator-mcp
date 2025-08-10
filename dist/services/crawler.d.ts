@@ -6,6 +6,7 @@ import type { CrawlOptions, CrawlResult } from '../types/index.js';
 export declare class CrawlerService {
     private crawlApp;
     private crawlOpenAIApp;
+    private crawlOllamaApp;
     private initialized;
     constructor();
     initialize(): Promise<void>;
