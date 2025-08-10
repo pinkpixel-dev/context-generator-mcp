@@ -29,12 +29,13 @@ export default [
       'array-bracket-spacing': ['error', 'never'],
       
       // TypeScript auto-fixable rules
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': 'off', // Don't enforce unused vars in format script
       '@typescript-eslint/no-explicit-any': 'off', // Project uses any extensively
       
       // Disable rules that might conflict with the existing codebase
       'no-console': 'off', // Project uses console.error for logging
       'no-undef': 'off', // TypeScript handles this
+      'no-unused-vars': 'off', // Don't enforce unused vars in format script
     },
   },
 ];
